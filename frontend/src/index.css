@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+:root {
+  --color-forest: #228B22;
+  --color-forest-dark: #1a6b1a;
+  --color-bark: #8B4513;
+  --color-leaf: #32CD32;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f8faf8;
+  color: #1a1a1a;
+  overscroll-behavior: none;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+input, select, textarea, button {
+  font-size: 16px;
+}
+
+.status-green { background: #dcfce7; color: #166534; }
+.status-yellow { background: #fef9c3; color: #854d0e; }
+.status-red { background: #fee2e2; color: #991b1b; }
