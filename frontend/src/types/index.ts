@@ -115,6 +115,100 @@ export interface WeatherData {
   period_name: string
 }
 
+export interface CrewMember {
+  id: number
+  name: string
+  phone: string | null
+  role: 'climber' | 'groundsman' | 'foreman' | 'operator' | 'apprentice'
+  hourly_rate: number | null
+  active: number
+  created_at: string
+}
+
+export interface TimeEntry {
+  id: number
+  crew_member_id: number
+  job_id: number | null
+  date: string
+  hours: number
+  notes: string | null
+  created_at: string
+  crew_name?: string
+  job_title?: string
+}
+
+export interface TimeSummary {
+  id: number
+  name: string
+  hourly_rate: number | null
+  total_hours: number
+  labor_cost: number
+}
+
+export interface Equipment {
+  id: number
+  name: string
+  type: 'chainsaw' | 'chipper' | 'stump_grinder' | 'bucket_truck' | 'crane' | 'climbing_gear' | 'trailer' | 'other'
+  serial_number: string | null
+  purchase_date: string | null
+  last_service_date: string | null
+  service_interval_hours: number
+  total_hours: number
+  notes: string | null
+  created_at: string
+  service_due: boolean
+  hours_until_service: number | null
+}
+
+export interface EquipmentLog {
+  id: number
+  equipment_id: number
+  job_id: number | null
+  date: string
+  hours_used: number
+  service_performed: string | null
+  notes: string | null
+  created_at: string
+  job_title?: string
+}
+
+export interface ChemicalApplication {
+  id: number
+  job_id: number | null
+  product_name: string
+  epa_reg_number: string | null
+  mix_rate: string | null
+  amount_applied: number | null
+  unit: string
+  target_pest: string | null
+  wind_speed_mph: number | null
+  temp_f: number | null
+  applicator_name: string | null
+  license_number: string | null
+  date: string
+  reentry_hours: number | null
+  notes: string | null
+  created_at: string
+  job_title?: string
+  client_name?: string
+}
+
+export interface RouteStop {
+  id: number
+  title: string
+  date: string
+  lat: number
+  lon: number
+  client: string
+  address: string
+  miles_from_prev: number
+}
+
+export interface RouteResult {
+  route: RouteStop[]
+  total_miles: number
+}
+
 export interface DashboardData {
   job_counts: Record<string, number>
   unpaid_invoices: { count: number; total: number }

@@ -60,6 +60,47 @@ def _seed_demo_data():
                ["fuel", 72.30, "Gas - chipper truck", "2026-03-11"])
     db.execute("INSERT INTO expenses (category, amount, description, mileage_miles, date) VALUES (?, ?, ?, ?, ?)",
                ["fuel", 28.14, "Mileage - job site visits", 42, "2026-03-12"])
+    # Demo crew members
+    db.execute("INSERT INTO crew_members (name, phone, role, hourly_rate) VALUES (?, ?, ?, ?)",
+               ["Jake Torres", "555-0401", "foreman", 35.00])
+    db.execute("INSERT INTO crew_members (name, phone, role, hourly_rate) VALUES (?, ?, ?, ?)",
+               ["Dani Reeves", "555-0402", "climber", 28.00])
+    db.execute("INSERT INTO crew_members (name, phone, role, hourly_rate) VALUES (?, ?, ?, ?)",
+               ["Tyler Cook", "555-0403", "groundsman", 20.00])
+    # Demo time entries
+    db.execute("INSERT INTO time_entries (crew_member_id, job_id, date, hours, notes) VALUES (?, ?, ?, ?, ?)",
+               [1, 1, "2026-03-15", 8, "Full day - oak removal"])
+    db.execute("INSERT INTO time_entries (crew_member_id, job_id, date, hours, notes) VALUES (?, ?, ?, ?, ?)",
+               [2, 1, "2026-03-15", 8, "Climbing - oak removal"])
+    db.execute("INSERT INTO time_entries (crew_member_id, job_id, date, hours, notes) VALUES (?, ?, ?, ?, ?)",
+               [3, 1, "2026-03-15", 8, "Ground crew - oak removal"])
+    db.execute("INSERT INTO time_entries (crew_member_id, job_id, date, hours, notes) VALUES (?, ?, ?, ?, ?)",
+               [1, 3, "2026-03-10", 3, "Emergency storm cleanup"])
+    db.execute("INSERT INTO time_entries (crew_member_id, job_id, date, hours, notes) VALUES (?, ?, ?, ?, ?)",
+               [2, 4, "2026-03-12", 4, "Hedge trimming"])
+    # Demo equipment
+    db.execute("INSERT INTO equipment (name, type, serial_number, purchase_date, last_service_date, service_interval_hours, total_hours) VALUES (?, ?, ?, ?, ?, ?, ?)",
+               ["Stihl MS 500i", "chainsaw", "SN-500i-2847", "2025-06-15", "2026-03-01", 50, 187])
+    db.execute("INSERT INTO equipment (name, type, serial_number, purchase_date, last_service_date, service_interval_hours, total_hours) VALUES (?, ?, ?, ?, ?, ?, ?)",
+               ["Vermeer BC1000XL", "chipper", "VER-BC-9912", "2024-01-10", "2026-02-15", 100, 342])
+    db.execute("INSERT INTO equipment (name, type, serial_number, purchase_date, last_service_date, service_interval_hours, total_hours) VALUES (?, ?, ?, ?, ?, ?, ?)",
+               ["Altec AT37G Bucket Truck", "bucket_truck", "ALT-37G-5501", "2023-08-20", "2026-01-20", 200, 1205])
+    db.execute("INSERT INTO equipment (name, type, serial_number, purchase_date, last_service_date, service_interval_hours, total_hours) VALUES (?, ?, ?, ?, ?, ?, ?)",
+               ["Husqvarna SG13", "stump_grinder", "HQ-SG13-3304", "2025-09-01", "2026-03-05", 75, 95])
+    # Demo equipment logs
+    db.execute("INSERT INTO equipment_logs (equipment_id, job_id, date, hours_used, notes) VALUES (?, ?, ?, ?, ?)",
+               [1, 1, "2026-03-15", 4, "Oak removal - heavy cutting"])
+    db.execute("INSERT INTO equipment_logs (equipment_id, job_id, date, hours_used, notes) VALUES (?, ?, ?, ?, ?)",
+               [2, 1, "2026-03-15", 3, "Chipping oak debris"])
+    db.execute("INSERT INTO equipment_logs (equipment_id, job_id, date, hours_used, notes) VALUES (?, ?, ?, ?, ?)",
+               [3, 1, "2026-03-15", 6, "Bucket work for canopy access"])
+    db.execute("INSERT INTO equipment_logs (equipment_id, job_id, date, hours_used, service_performed, notes) VALUES (?, ?, ?, ?, ?, ?)",
+               [1, None, "2026-03-01", 0, "Chain sharpened, bar oiled, air filter replaced", "50-hour service"])
+    # Demo chemical applications
+    db.execute("INSERT INTO chemical_applications (job_id, product_name, epa_reg_number, mix_rate, amount_applied, unit, target_pest, wind_speed_mph, temp_f, applicator_name, license_number, date, reentry_hours, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+               [4, "Quali-Pro Propiconazole 14.3", "66222-154", "1 oz/gal", 2.5, "gal", "Oak wilt (Ceratocystis fagacearum)", 5, 62, "Jake Torres", "OR-CPO-4412", "2026-03-12", 24, "Trunk injection + soil drench"])
+    db.execute("INSERT INTO chemical_applications (job_id, product_name, epa_reg_number, amount_applied, unit, target_pest, wind_speed_mph, temp_f, applicator_name, license_number, date, reentry_hours) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+               [3, "Bonide Systemic Insect Control", "4-493", 0.5, "gal", "Emerald Ash Borer", 3, 58, "Jake Torres", "OR-CPO-4412", "2026-03-10", 12])
     db.commit()
 
 def _auth(authorization: str | None):
@@ -348,6 +389,255 @@ async def delete_expense(expense_id: int, authorization: str | None = Header(Non
     db.execute("DELETE FROM expenses WHERE id = ?", [expense_id])
     db.commit()
     return {"ok": True}
+
+# ─── Crew & Time Tracking ───────────────────────────
+CREW_COLS = ["id","name","phone","role","hourly_rate","active","created_at"]
+
+@app.get("/api/crew")
+async def list_crew(authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    rows = db.execute("SELECT * FROM crew_members ORDER BY name").fetchall()
+    return [dict(zip(CREW_COLS, row)) for row in rows]
+
+@app.post("/api/crew")
+async def create_crew(body: CrewMemberCreate, authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    cursor = db.execute("INSERT INTO crew_members (name,phone,role,hourly_rate) VALUES (?,?,?,?)",
+                        [body.name, body.phone, body.role, body.hourly_rate])
+    db.commit()
+    return {"id": cursor.lastrowid}
+
+@app.put("/api/crew/{member_id}")
+async def update_crew(member_id: int, body: CrewMemberUpdate, authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    updates, values = [], []
+    for field, val in body.model_dump(exclude_none=True).items():
+        updates.append(f"{field} = ?")
+        values.append(val)
+    if not updates: raise HTTPException(400, "Nothing to update")
+    values.append(member_id)
+    db.execute(f"UPDATE crew_members SET {', '.join(updates)} WHERE id = ?", values)
+    db.commit()
+    return {"ok": True}
+
+@app.delete("/api/crew/{member_id}")
+async def delete_crew(member_id: int, authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    db.execute("DELETE FROM crew_members WHERE id = ?", [member_id])
+    db.commit()
+    return {"ok": True}
+
+TIME_COLS = ["id","crew_member_id","job_id","date","hours","notes","created_at"]
+
+@app.get("/api/time-entries")
+async def list_time_entries(job_id: int | None = None, crew_member_id: int | None = None, date_from: str | None = None, date_to: str | None = None, authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    q = """SELECT t.*, cm.name as crew_name, j.title as job_title
+           FROM time_entries t
+           LEFT JOIN crew_members cm ON t.crew_member_id = cm.id
+           LEFT JOIN jobs j ON t.job_id = j.id WHERE 1=1"""
+    params = []
+    if job_id: q += " AND t.job_id = ?"; params.append(job_id)
+    if crew_member_id: q += " AND t.crew_member_id = ?"; params.append(crew_member_id)
+    if date_from: q += " AND t.date >= ?"; params.append(date_from)
+    if date_to: q += " AND t.date <= ?"; params.append(date_to)
+    rows = db.execute(q + " ORDER BY t.date DESC", params).fetchall()
+    return [dict(zip(TIME_COLS + ["crew_name","job_title"], row)) for row in rows]
+
+@app.get("/api/time-entries/summary")
+async def time_summary(date_from: str | None = None, date_to: str | None = None, authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    q = """SELECT cm.id, cm.name, cm.hourly_rate, SUM(t.hours) as total_hours
+           FROM time_entries t JOIN crew_members cm ON t.crew_member_id = cm.id WHERE 1=1"""
+    params = []
+    if date_from: q += " AND t.date >= ?"; params.append(date_from)
+    if date_to: q += " AND t.date <= ?"; params.append(date_to)
+    rows = db.execute(q + " GROUP BY cm.id ORDER BY total_hours DESC", params).fetchall()
+    return [{"id": r[0], "name": r[1], "hourly_rate": r[2], "total_hours": r[3],
+             "labor_cost": (r[2] or 0) * r[3]} for r in rows]
+
+@app.post("/api/time-entries")
+async def create_time_entry(body: TimeEntryCreate, authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    cursor = db.execute("INSERT INTO time_entries (crew_member_id,job_id,date,hours,notes) VALUES (?,?,?,?,?)",
+                        [body.crew_member_id, body.job_id, body.date, body.hours, body.notes])
+    db.commit()
+    return {"id": cursor.lastrowid}
+
+@app.delete("/api/time-entries/{entry_id}")
+async def delete_time_entry(entry_id: int, authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    db.execute("DELETE FROM time_entries WHERE id = ?", [entry_id])
+    db.commit()
+    return {"ok": True}
+
+# ─── Equipment ──────────────────────────────────────
+EQUIP_COLS = ["id","name","type","serial_number","purchase_date","last_service_date","service_interval_hours","total_hours","notes","created_at"]
+
+@app.get("/api/equipment")
+async def list_equipment(authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    rows = db.execute("SELECT * FROM equipment ORDER BY name").fetchall()
+    results = []
+    for row in rows:
+        d = dict(zip(EQUIP_COLS, row))
+        hours_since = d["total_hours"] - (d.get("_last_svc_hours") or 0)
+        d["service_due"] = d["total_hours"] > 0 and d["service_interval_hours"] > 0 and (d["total_hours"] % d["service_interval_hours"]) < (d["service_interval_hours"] * 0.1) if d["total_hours"] > d["service_interval_hours"] else False
+        d["hours_until_service"] = d["service_interval_hours"] - (d["total_hours"] % d["service_interval_hours"]) if d["service_interval_hours"] > 0 else None
+        results.append(d)
+    return results
+
+@app.post("/api/equipment")
+async def create_equipment(body: EquipmentCreate, authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    cursor = db.execute("INSERT INTO equipment (name,type,serial_number,purchase_date,service_interval_hours,notes) VALUES (?,?,?,?,?,?)",
+                        [body.name, body.type, body.serial_number, body.purchase_date, body.service_interval_hours, body.notes])
+    db.commit()
+    return {"id": cursor.lastrowid}
+
+@app.put("/api/equipment/{equip_id}")
+async def update_equipment(equip_id: int, body: EquipmentUpdate, authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    updates, values = [], []
+    for field, val in body.model_dump(exclude_none=True).items():
+        updates.append(f"{field} = ?")
+        values.append(val)
+    if not updates: raise HTTPException(400, "Nothing to update")
+    values.append(equip_id)
+    db.execute(f"UPDATE equipment SET {', '.join(updates)} WHERE id = ?", values)
+    db.commit()
+    return {"ok": True}
+
+@app.delete("/api/equipment/{equip_id}")
+async def delete_equipment(equip_id: int, authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    db.execute("DELETE FROM equipment WHERE id = ?", [equip_id])
+    db.commit()
+    return {"ok": True}
+
+ELOG_COLS = ["id","equipment_id","job_id","date","hours_used","service_performed","notes","created_at"]
+
+@app.get("/api/equipment/{equip_id}/logs")
+async def list_equipment_logs(equip_id: int, authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    rows = db.execute("""SELECT el.*, j.title as job_title FROM equipment_logs el
+                         LEFT JOIN jobs j ON el.job_id = j.id
+                         WHERE el.equipment_id = ? ORDER BY el.date DESC""", [equip_id]).fetchall()
+    return [dict(zip(ELOG_COLS + ["job_title"], row)) for row in rows]
+
+@app.post("/api/equipment/log")
+async def create_equipment_log(body: EquipmentLogCreate, authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    cursor = db.execute("INSERT INTO equipment_logs (equipment_id,job_id,date,hours_used,service_performed,notes) VALUES (?,?,?,?,?,?)",
+                        [body.equipment_id, body.job_id, body.date, body.hours_used, body.service_performed, body.notes])
+    # Update total hours on the equipment
+    db.execute("UPDATE equipment SET total_hours = total_hours + ? WHERE id = ?", [body.hours_used, body.equipment_id])
+    if body.service_performed:
+        db.execute("UPDATE equipment SET last_service_date = ? WHERE id = ?", [body.date, body.equipment_id])
+    db.commit()
+    return {"id": cursor.lastrowid}
+
+# ─── Chemical/Treatment Tracking ────────────────────
+CHEM_COLS = ["id","job_id","product_name","epa_reg_number","mix_rate","amount_applied","unit",
+             "target_pest","wind_speed_mph","temp_f","applicator_name","license_number","date",
+             "reentry_hours","notes","created_at"]
+
+@app.get("/api/chemicals")
+async def list_chemicals(job_id: int | None = None, date_from: str | None = None, date_to: str | None = None, authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    q = """SELECT ca.*, j.title as job_title, c.name as client_name
+           FROM chemical_applications ca
+           LEFT JOIN jobs j ON ca.job_id = j.id
+           LEFT JOIN clients c ON j.client_id = c.id WHERE 1=1"""
+    params = []
+    if job_id: q += " AND ca.job_id = ?"; params.append(job_id)
+    if date_from: q += " AND ca.date >= ?"; params.append(date_from)
+    if date_to: q += " AND ca.date <= ?"; params.append(date_to)
+    rows = db.execute(q + " ORDER BY ca.date DESC", params).fetchall()
+    return [dict(zip(CHEM_COLS + ["job_title","client_name"], row)) for row in rows]
+
+@app.post("/api/chemicals")
+async def create_chemical(body: ChemicalAppCreate, authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    cursor = db.execute(
+        "INSERT INTO chemical_applications (job_id,product_name,epa_reg_number,mix_rate,amount_applied,unit,target_pest,wind_speed_mph,temp_f,applicator_name,license_number,date,reentry_hours,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        [body.job_id, body.product_name, body.epa_reg_number, body.mix_rate, body.amount_applied,
+         body.unit, body.target_pest, body.wind_speed_mph, body.temp_f, body.applicator_name,
+         body.license_number, body.date, body.reentry_hours, body.notes])
+    db.commit()
+    return {"id": cursor.lastrowid}
+
+@app.delete("/api/chemicals/{chem_id}")
+async def delete_chemical(chem_id: int, authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    db.execute("DELETE FROM chemical_applications WHERE id = ?", [chem_id])
+    db.commit()
+    return {"ok": True}
+
+# ─── Route Optimizer ────────────────────────────────
+import math
+
+def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Distance in miles between two GPS points."""
+    R = 3958.8
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
+    return R * 2 * math.asin(math.sqrt(a))
+
+@app.get("/api/route/optimize")
+async def optimize_route(date: str | None = None, authorization: str | None = Header(None)):
+    """Nearest-neighbor route optimization for scheduled jobs."""
+    _auth(authorization)
+    db = get_db()
+    q = """SELECT j.id, j.title, j.scheduled_date, j.location_lat, j.location_lon, c.name, c.address
+           FROM jobs j LEFT JOIN clients c ON j.client_id = c.id
+           WHERE j.status IN ('scheduled','in_progress') AND j.location_lat IS NOT NULL AND j.location_lon IS NOT NULL"""
+    params = []
+    if date: q += " AND j.scheduled_date = ?"; params.append(date)
+    rows = db.execute(q + " ORDER BY j.scheduled_date", params).fetchall()
+    jobs = [{"id": r[0], "title": r[1], "date": r[2], "lat": r[3], "lon": r[4], "client": r[5], "address": r[6]} for r in rows]
+
+    if len(jobs) <= 1:
+        return {"route": jobs, "total_miles": 0}
+
+    # Nearest-neighbor starting from first job
+    remaining = list(jobs)
+    route = [remaining.pop(0)]
+    total_miles = 0
+    while remaining:
+        last = route[-1]
+        nearest_idx = min(range(len(remaining)),
+                          key=lambda i: _haversine(last["lat"], last["lon"], remaining[i]["lat"], remaining[i]["lon"]))
+        dist = _haversine(last["lat"], last["lon"], remaining[nearest_idx]["lat"], remaining[nearest_idx]["lon"])
+        total_miles += dist
+        route.append(remaining.pop(nearest_idx))
+
+    # Add distances to each stop
+    for i, stop in enumerate(route):
+        if i == 0:
+            stop["miles_from_prev"] = 0
+        else:
+            stop["miles_from_prev"] = round(_haversine(route[i-1]["lat"], route[i-1]["lon"], stop["lat"], stop["lon"]), 1)
+
+    return {"route": route, "total_miles": round(total_miles, 1)}
 
 # ─── Weather ─────────────────────────────────────────
 @app.get("/api/weather")

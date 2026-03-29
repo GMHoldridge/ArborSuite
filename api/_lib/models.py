@@ -159,3 +159,66 @@ class ExpenseResponse(BaseModel):
     mileage_miles: Optional[float]
     date: str
     created_at: str
+
+# Crew
+class CrewMemberCreate(BaseModel):
+    name: str
+    phone: Optional[str] = None
+    role: str = "climber"
+    hourly_rate: Optional[float] = None
+
+class CrewMemberUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    role: Optional[str] = None
+    hourly_rate: Optional[float] = None
+    active: Optional[int] = None
+
+class TimeEntryCreate(BaseModel):
+    crew_member_id: int
+    job_id: Optional[int] = None
+    date: str
+    hours: float
+    notes: Optional[str] = None
+
+# Equipment
+class EquipmentCreate(BaseModel):
+    name: str
+    type: str
+    serial_number: Optional[str] = None
+    purchase_date: Optional[str] = None
+    service_interval_hours: float = 50
+    notes: Optional[str] = None
+
+class EquipmentUpdate(BaseModel):
+    name: Optional[str] = None
+    type: Optional[str] = None
+    serial_number: Optional[str] = None
+    last_service_date: Optional[str] = None
+    service_interval_hours: Optional[float] = None
+    notes: Optional[str] = None
+
+class EquipmentLogCreate(BaseModel):
+    equipment_id: int
+    job_id: Optional[int] = None
+    date: str
+    hours_used: float
+    service_performed: Optional[str] = None
+    notes: Optional[str] = None
+
+# Chemical Applications
+class ChemicalAppCreate(BaseModel):
+    job_id: Optional[int] = None
+    product_name: str
+    epa_reg_number: Optional[str] = None
+    mix_rate: Optional[str] = None
+    amount_applied: Optional[float] = None
+    unit: str = "gal"
+    target_pest: Optional[str] = None
+    wind_speed_mph: Optional[float] = None
+    temp_f: Optional[float] = None
+    applicator_name: Optional[str] = None
+    license_number: Optional[str] = None
+    date: str
+    reentry_hours: Optional[float] = None
+    notes: Optional[str] = None

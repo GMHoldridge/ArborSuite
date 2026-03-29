@@ -97,6 +97,69 @@ CREATE TABLE IF NOT EXISTS expenses (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS crew_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    phone TEXT,
+    role TEXT DEFAULT 'climber' CHECK(role IN ('climber','groundsman','foreman','operator','apprentice')),
+    hourly_rate REAL,
+    active INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS time_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    crew_member_id INTEGER REFERENCES crew_members(id),
+    job_id INTEGER REFERENCES jobs(id),
+    date TEXT NOT NULL,
+    hours REAL NOT NULL,
+    notes TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS equipment (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    type TEXT CHECK(type IN ('chainsaw','chipper','stump_grinder','bucket_truck','crane','climbing_gear','trailer','other')),
+    serial_number TEXT,
+    purchase_date TEXT,
+    last_service_date TEXT,
+    service_interval_hours REAL DEFAULT 50,
+    total_hours REAL DEFAULT 0,
+    notes TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS equipment_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    equipment_id INTEGER REFERENCES equipment(id),
+    job_id INTEGER REFERENCES jobs(id),
+    date TEXT NOT NULL,
+    hours_used REAL NOT NULL,
+    service_performed TEXT,
+    notes TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS chemical_applications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_id INTEGER REFERENCES jobs(id),
+    product_name TEXT NOT NULL,
+    epa_reg_number TEXT,
+    mix_rate TEXT,
+    amount_applied REAL,
+    unit TEXT DEFAULT 'gal' CHECK(unit IN ('gal','oz','lb','qt','ml','l')),
+    target_pest TEXT,
+    wind_speed_mph REAL,
+    temp_f REAL,
+    applicator_name TEXT,
+    license_number TEXT,
+    date TEXT NOT NULL,
+    reentry_hours REAL,
+    notes TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS photos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     job_id INTEGER REFERENCES jobs(id),
