@@ -1,4 +1,5 @@
-import { Outlet, NavLink } from 'react-router-dom'
+import { useState } from 'react'
+import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 
 const navItems = [
@@ -39,19 +40,21 @@ const navItems = [
       </svg>
     ),
   },
-  {
-    to: '/clients',
-    label: 'Clients',
-    icon: (
-      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-      </svg>
-    ),
-  },
+]
+
+const moreItems = [
+  { to: '/crew', label: 'Crew & Time', icon: '👷' },
+  { to: '/equipment', label: 'Equipment', icon: '🪚' },
+  { to: '/chemicals', label: 'Chemicals', icon: '🧪' },
+  { to: '/route', label: 'Route Planner', icon: '🗺️' },
+  { to: '/clients', label: 'Clients', icon: '👥' },
+  { to: '/expenses', label: 'Expenses', icon: '💰' },
 ]
 
 export default function AppShell() {
   const { logout } = useAuth()
+  const navigate = useNavigate()
+  const [showMore, setShowMore] = useState(false)
 
   return (
     <div className="flex flex-col h-dvh bg-gray-50">
@@ -71,8 +74,27 @@ export default function AppShell() {
         <Outlet />
       </main>
 
+      {/* More menu overlay */}
+      {showMore && (
+        <div className="fixed inset-0 z-40" onClick={() => setShowMore(false)}>
+          <div className="absolute bottom-16 right-2 left-2 max-w-sm mx-auto bg-white rounded-2xl shadow-xl border border-gray-200 p-2"
+            onClick={e => e.stopPropagation()}>
+            <div className="grid grid-cols-3 gap-1">
+              {moreItems.map((item) => (
+                <button key={item.to}
+                  onClick={() => { navigate(item.to); setShowMore(false) }}
+                  className="flex flex-col items-center gap-1 p-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors">
+                  <span className="text-2xl">{item.icon}</span>
+                  <span className="text-[11px] font-medium text-gray-700">{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bottom navigation */}
-      <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+      <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] z-50">
         <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
           {navItems.map((item) => (
             <NavLink
@@ -91,6 +113,18 @@ export default function AppShell() {
               <span className="text-[10px] font-medium">{item.label}</span>
             </NavLink>
           ))}
+          {/* More button */}
+          <button
+            onClick={() => setShowMore(!showMore)}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${
+              showMore ? 'text-[#228B22]' : 'text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <span className="text-[10px] font-medium">More</span>
+          </button>
         </div>
       </nav>
     </div>

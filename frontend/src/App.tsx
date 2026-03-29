@@ -13,6 +13,10 @@ import InvoiceList from './components/invoices/InvoiceList'
 import ExpenseList from './components/expenses/ExpenseList'
 import ExpenseCapture from './components/expenses/ExpenseCapture'
 import ClientSubmit from './components/assess/ClientSubmit'
+import CrewTimeLog from './components/crew/CrewTimeLog'
+import EquipmentList from './components/equipment/EquipmentList'
+import ChemicalLog from './components/chemicals/ChemicalLog'
+import RouteOptimizer from './components/route/RouteOptimizer'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return hasToken() ? <>{children}</> : <Navigate to="/login" />
@@ -34,6 +38,10 @@ export default function App() {
         <Route path="invoices" element={<InvoiceList />} />
         <Route path="expenses" element={<ExpenseList />} />
         <Route path="expenses/new" element={<ExpenseCapture />} />
+        <Route path="crew" element={<CrewTimeLog />} />
+        <Route path="equipment" element={<EquipmentList />} />
+        <Route path="chemicals" element={<ChemicalLog />} />
+        <Route path="route" element={<RouteOptimizer />} />
       </Route>
     </Routes>
   )
