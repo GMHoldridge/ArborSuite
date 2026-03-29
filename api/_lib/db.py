@@ -1,14 +1,23 @@
 import os
-import libsql_experimental as libsql
+import sqlite3
+
+try:
+    import libsql_experimental as libsql
+except ImportError:
+    libsql = None
 
 _conn = None
 
 def get_db():
     global _conn
     if _conn is None:
-        url = os.environ["TURSO_DATABASE_URL"]
-        token = os.environ["TURSO_AUTH_TOKEN"]
-        _conn = libsql.connect(url=url, auth_token=token)
+        turso_url = os.environ.get("TURSO_DATABASE_URL")
+        turso_token = os.environ.get("TURSO_AUTH_TOKEN")
+        if libsql and turso_url and turso_token:
+            _conn = libsql.connect(url=turso_url, auth_token=turso_token)
+        else:
+            db_path = os.path.join(os.path.dirname(__file__), '..', '..', 'arborsuite.db')
+            _conn = sqlite3.connect(db_path)
     return _conn
 
 def run_migrations():
