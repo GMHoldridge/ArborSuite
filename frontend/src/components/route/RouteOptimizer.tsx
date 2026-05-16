@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../api/client'
+import { toast, errorMessage } from '../../stores/toast'
 import type { RouteResult } from '../../types/index'
 
 export default function RouteOptimizer() {
@@ -17,7 +18,7 @@ export default function RouteOptimizer() {
       const data = await api.get<RouteResult>(path)
       setResult(data)
     } catch (err) {
-      console.error('Failed to load route', err)
+      toast.error(errorMessage(err, 'Failed to load route'))
     } finally {
       setLoading(false)
     }
