@@ -69,8 +69,11 @@ export default function JobDetail() {
     try {
       const updated = await api.put<JobDetailResponse>(`/jobs/${job.id}`, { status: next })
       setJob(updated)
+      toast.success(`Job marked ${STATUS_LABELS[next] || next}`)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to update')
+      const msg = errorMessage(e, 'Failed to update job')
+      setError(msg)
+      toast.error(msg)
     } finally {
       setUpdating(false)
     }
@@ -85,8 +88,11 @@ export default function JobDetail() {
       })
       setJob(updated)
       setEditingDate(false)
+      toast.success(newDate ? 'Date updated' : 'Date cleared')
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to update')
+      const msg = errorMessage(e, 'Failed to update date')
+      setError(msg)
+      toast.error(msg)
     } finally {
       setUpdating(false)
     }

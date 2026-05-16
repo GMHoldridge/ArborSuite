@@ -179,8 +179,11 @@ export default function AssessmentView() {
     try {
       await api.put(`/assess/${id}/corrections`, corrections)
       setSaved(true)
+      toast.success('Corrections saved')
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Save failed')
+      const msg = errorMessage(e, 'Save failed')
+      setError(msg)
+      toast.error(msg)
     } finally {
       setSaving(false)
     }
@@ -213,9 +216,12 @@ export default function AssessmentView() {
         tax_rate: taxRate,
       })
       await api.post(`/quotes/${quote.id}/send`, {})
+      toast.success(`Quote sent ($${total.toFixed(2)})`)
       navigate(`/jobs/${assessment.job_id}`)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to send quote')
+      const msg = errorMessage(e, 'Failed to send quote')
+      setError(msg)
+      toast.error(msg)
     } finally {
       setSendingQuote(false)
     }

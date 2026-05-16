@@ -73,8 +73,11 @@ export default function JobBoard() {
         scheduled_date: newJob.scheduled_date || null,
       })
       setJobs((prev) => [...prev, created])
+      toast.success(`Job "${created.title}" created`)
       setShowCreate(false)
       setNewJob({ title: '', client_id: '', scheduled_date: '' })
+    } catch (err) {
+      toast.error(errorMessage(err, 'Failed to create job'))
     } finally {
       setCreating(false)
     }
