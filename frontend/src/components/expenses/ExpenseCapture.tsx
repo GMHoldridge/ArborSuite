@@ -62,9 +62,10 @@ export default function ExpenseCapture() {
       if (photo) formData.append('receipt_photo', photo)
 
       await api.post('/expenses', formData)
+      toast.success(`Expense saved ($${effectiveAmount})`)
       navigate('/expenses')
     } catch (err) {
-      console.error('Failed to save expense', err)
+      toast.error(errorMessage(err, 'Failed to save expense'))
     } finally {
       setSaving(false)
     }

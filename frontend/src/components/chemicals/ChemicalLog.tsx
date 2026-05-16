@@ -31,7 +31,7 @@ export default function ChemicalLog() {
       setApps(c)
       setJobs(j)
     } catch (err) {
-      console.error('Failed to load chemicals', err)
+      toast.error(errorMessage(err, 'Failed to load chemicals'))
     } finally {
       setLoading(false)
     }
@@ -39,29 +39,34 @@ export default function ChemicalLog() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    await api.post('/chemicals', {
-      job_id: f.job_id ? parseInt(f.job_id) : null,
-      product_name: f.product_name,
-      epa_reg_number: f.epa_reg_number || null,
-      mix_rate: f.mix_rate || null,
-      amount_applied: f.amount_applied ? parseFloat(f.amount_applied) : null,
-      unit: f.unit,
-      target_pest: f.target_pest || null,
-      wind_speed_mph: f.wind_speed_mph ? parseFloat(f.wind_speed_mph) : null,
-      temp_f: f.temp_f ? parseFloat(f.temp_f) : null,
-      applicator_name: f.applicator_name || null,
-      license_number: f.license_number || null,
-      date: f.date,
-      reentry_hours: f.reentry_hours ? parseFloat(f.reentry_hours) : null,
-      notes: f.notes || null,
-    })
-    setShowForm(false)
-    setF({ job_id: '', product_name: '', epa_reg_number: '', mix_rate: '',
-           amount_applied: '', unit: 'gal', target_pest: '', wind_speed_mph: '',
-           temp_f: '', applicator_name: '', license_number: '',
-           date: new Date().toISOString().slice(0, 10), reentry_hours: '', notes: '' })
-    setLoading(true)
-    load()
+    try {
+      await api.post('/chemicals', {
+        job_id: f.job_id ? parseInt(f.job_id) : null,
+        product_name: f.product_name,
+        epa_reg_number: f.epa_reg_number || null,
+        mix_rate: f.mix_rate || null,
+        amount_applied: f.amount_applied ? parseFloat(f.amount_applied) : null,
+        unit: f.unit,
+        target_pest: f.target_pest || null,
+        wind_speed_mph: f.wind_speed_mph ? parseFloat(f.wind_speed_mph) : null,
+        temp_f: f.temp_f ? parseFloat(f.temp_f) : null,
+        applicator_name: f.applicator_name || null,
+        license_number: f.license_number || null,
+        date: f.date,
+        reentry_hours: f.reentry_hours ? parseFloat(f.reentry_hours) : null,
+        notes: f.notes || null,
+      })
+      toast.success(`${f.product_name} application logged`)
+      setShowForm(false)
+      setF({ job_id: '', product_name: '', epa_reg_number: '', mix_rate: '',
+             amount_applied: '', unit: 'gal', target_pest: '', wind_speed_mph: '',
+             temp_f: '', applicator_name: '', license_number: '',
+             date: new Date().toISOString().slice(0, 10), reentry_hours: '', notes: '' })
+      setLoading(true)
+      load()
+    } catch (err) {
+      toast.error(errorMessage(err, 'Failed to log application'))
+    }
   }
 
   if (loading) return <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-[#228B22] border-t-transparent rounded-full animate-spin" /></div>

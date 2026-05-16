@@ -58,7 +58,7 @@ export default function EquipmentList() {
       setEquipment(e)
       setJobs(j)
     } catch (err) {
-      console.error('Failed to load equipment', err)
+      toast.error(errorMessage(err, 'Failed to load equipment'))
     } finally {
       setLoading(false)
     }
@@ -66,40 +66,54 @@ export default function EquipmentList() {
 
   async function loadLogs(equipId: number) {
     setSelectedId(equipId)
-    const data = await api.get<EquipmentLog[]>(`/equipment/${equipId}/logs`)
-    setLogs(data)
+    try {
+      const data = await api.get<EquipmentLog[]>(`/equipment/${equipId}/logs`)
+      setLogs(data)
+    } catch (err) {
+      toast.error(errorMessage(err, 'Failed to load logs'))
+    }
   }
 
   async function submitLog(e: React.FormEvent) {
     e.preventDefault()
     if (!selectedId) return
-    await api.post('/equipment/log', {
-      equipment_id: selectedId,
-      job_id: logJobId ? parseInt(logJobId) : null,
-      date: logDate,
-      hours_used: parseFloat(logHours),
-      service_performed: logService || null,
-      notes: logNotes || null,
-    })
-    setShowLogForm(false)
-    setLogJobId(''); setLogHours(''); setLogService(''); setLogNotes('')
-    setLoading(true)
-    load()
-    loadLogs(selectedId)
+    try {
+      await api.post('/equipment/log', {
+        equipment_id: selectedId,
+        job_id: logJobId ? parseInt(logJobId) : null,
+        date: logDate,
+        hours_used: parseFloat(logHours),
+        service_performed: logService || null,
+        notes: logNotes || null,
+      })
+      toast.success(logService ? 'Service logged' : `${logHours}h logged`)
+      setShowLogForm(false)
+      setLogJobId(''); setLogHours(''); setLogService(''); setLogNotes('')
+      setLoading(true)
+      load()
+      loadLogs(selectedId)
+    } catch (err) {
+      toast.error(errorMessage(err, 'Failed to log usage'))
+    }
   }
 
   async function addEquipment(e: React.FormEvent) {
     e.preventDefault()
-    await api.post('/equipment', {
-      name: addName,
-      type: addType,
-      serial_number: addSerial || null,
-      service_interval_hours: parseFloat(addInterval),
-    })
-    setShowAddForm(false)
-    setAddName(''); setAddSerial(''); setAddInterval('50')
-    setLoading(true)
-    load()
+    try {
+      await api.post('/equipment', {
+        name: addName,
+        type: addType,
+        serial_number: addSerial || null,
+        service_interval_hours: parseFloat(addInterval),
+      })
+      toast.success(`${addName} added`)
+      setShowAddForm(false)
+      setAddName(''); setAddSerial(''); setAddInterval('50')
+      setLoading(true)
+      load()
+    } catch (err) {
+      toast.error(errorMessage(err, 'Failed to add equipment'))
+    }
   }
 
   const selected = equipment.find(e => e.id === selectedId)

@@ -110,9 +110,12 @@ export default function NewAssessment() {
         client_notes: notes || null,
       })
 
+      toast.success('Assessment created')
       navigate(`/assess/${assessment.id}`)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Upload failed')
+      const msg = errorMessage(e, 'Upload failed')
+      setError(msg)
+      toast.error(msg)
       setUploading(false)
       setAnalyzing(false)
     }

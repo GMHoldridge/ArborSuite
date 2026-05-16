@@ -40,7 +40,7 @@ export default function ExpenseList() {
         const data = await api.get<Expense[]>('/expenses')
         setExpenses(data)
       } catch (err) {
-        console.error('Failed to load expenses', err)
+        toast.error(errorMessage(err, 'Failed to load expenses'))
       } finally {
         setLoading(false)
       }

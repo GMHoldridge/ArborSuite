@@ -51,10 +51,11 @@ export default function InvoiceList() {
         payment_method: payMethod,
         paid_at: new Date().toISOString(),
       })
+      toast.success(`Invoice marked paid ($${inv.total.toFixed(2)} via ${payMethod})`)
       setExpandedId(null)
       await fetchInvoices()
     } catch (err) {
-      console.error('Failed to mark paid', err)
+      toast.error(errorMessage(err, 'Failed to mark paid'))
     } finally {
       setMarking(false)
     }
@@ -64,8 +65,9 @@ export default function InvoiceList() {
     setSending(true)
     try {
       await api.post(`/invoices/${inv.id}/reminder`)
+      toast.success(`Reminder sent${inv.client_name ? ` to ${inv.client_name}` : ''}`)
     } catch (err) {
-      console.error('Failed to send reminder', err)
+      toast.error(errorMessage(err, 'Failed to send reminder'))
     } finally {
       setSending(false)
     }
@@ -76,10 +78,11 @@ export default function InvoiceList() {
     setCreating(true)
     try {
       await api.post(`/invoices/from-quote/${quoteId.trim()}`)
+      toast.success(`Invoice created from quote #${quoteId.trim()}`)
       setQuoteId('')
       await fetchInvoices()
     } catch (err) {
-      console.error('Failed to create invoice', err)
+      toast.error(errorMessage(err, 'Failed to create invoice'))
     } finally {
       setCreating(false)
     }

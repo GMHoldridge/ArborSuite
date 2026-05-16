@@ -49,7 +49,7 @@ export default function CrewTimeLog() {
       setSummary(s)
       setJobs(j)
     } catch (err) {
-      console.error('Failed to load crew data', err)
+      toast.error(errorMessage(err, 'Failed to load crew data'))
     } finally {
       setLoading(false)
     }
@@ -57,31 +57,41 @@ export default function CrewTimeLog() {
 
   async function submitTime(e: React.FormEvent) {
     e.preventDefault()
-    await api.post('/time-entries', {
-      crew_member_id: parseInt(formCrewId),
-      job_id: formJobId ? parseInt(formJobId) : null,
-      date: formDate,
-      hours: parseFloat(formHours),
-      notes: formNotes || null,
-    })
-    setShowForm(false)
-    setFormCrewId(''); setFormJobId(''); setFormHours(''); setFormNotes('')
-    setLoading(true)
-    load()
+    try {
+      await api.post('/time-entries', {
+        crew_member_id: parseInt(formCrewId),
+        job_id: formJobId ? parseInt(formJobId) : null,
+        date: formDate,
+        hours: parseFloat(formHours),
+        notes: formNotes || null,
+      })
+      toast.success(`${formHours}h logged`)
+      setShowForm(false)
+      setFormCrewId(''); setFormJobId(''); setFormHours(''); setFormNotes('')
+      setLoading(true)
+      load()
+    } catch (err) {
+      toast.error(errorMessage(err, 'Failed to log time'))
+    }
   }
 
   async function addCrew(e: React.FormEvent) {
     e.preventDefault()
-    await api.post('/crew', {
-      name: newName,
-      phone: newPhone || null,
-      role: newRole,
-      hourly_rate: newRate ? parseFloat(newRate) : null,
-    })
-    setShowAddCrew(false)
-    setNewName(''); setNewPhone(''); setNewRole('climber'); setNewRate('')
-    setLoading(true)
-    load()
+    try {
+      await api.post('/crew', {
+        name: newName,
+        phone: newPhone || null,
+        role: newRole,
+        hourly_rate: newRate ? parseFloat(newRate) : null,
+      })
+      toast.success(`${newName} added to crew`)
+      setShowAddCrew(false)
+      setNewName(''); setNewPhone(''); setNewRole('climber'); setNewRate('')
+      setLoading(true)
+      load()
+    } catch (err) {
+      toast.error(errorMessage(err, 'Failed to add crew member'))
+    }
   }
 
   const totalHours = entries.reduce((s, e) => s + e.hours, 0)
