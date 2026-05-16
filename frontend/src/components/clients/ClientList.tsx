@@ -22,7 +22,7 @@ export default function ClientList() {
       const data = await api.get<Client[]>('/clients')
       setClients(data)
     } catch (err) {
-      console.error('Failed to load clients', err)
+      toast.error(errorMessage(err, 'Failed to load clients'))
     } finally {
       setLoading(false)
     }
