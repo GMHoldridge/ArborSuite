@@ -26,7 +26,7 @@ export default function InvoiceList() {
       const data = await api.get<Invoice[]>('/invoices')
       setInvoices(data)
     } catch (err) {
-      console.error('Failed to load invoices', err)
+      toast.error(errorMessage(err, 'Failed to load invoices'))
     } finally {
       setLoading(false)
     }
