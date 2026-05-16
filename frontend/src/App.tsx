@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { hasToken } from './api/client'
+import Toaster from './components/ui/Toaster'
 import AppShell from './components/layout/AppShell'
 import LoginPage from './components/layout/LoginPage'
 import Dashboard from './components/layout/Dashboard'
