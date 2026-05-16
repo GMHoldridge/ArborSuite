@@ -25,25 +25,28 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/submit/:token" element={<ClientSubmit />} />
-      <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
-        <Route index element={<Dashboard />} />
-        <Route path="jobs" element={<JobBoard />} />
-        <Route path="jobs/:id" element={<JobDetail />} />
-        <Route path="assess" element={<NewAssessment />} />
-        <Route path="assess/:id" element={<AssessmentView />} />
-        <Route path="clients" element={<ClientList />} />
-        <Route path="clients/:id" element={<ClientDetail />} />
-        <Route path="invoices" element={<InvoiceList />} />
-        <Route path="expenses" element={<ExpenseList />} />
-        <Route path="expenses/new" element={<ExpenseCapture />} />
-        <Route path="crew" element={<CrewTimeLog />} />
-        <Route path="equipment" element={<EquipmentList />} />
-        <Route path="chemicals" element={<ChemicalLog />} />
-        <Route path="route" element={<RouteOptimizer />} />
-      </Route>
-    </Routes>
+    <>
+      <Toaster />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/submit/:token" element={<ClientSubmit />} />
+        <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
+          <Route index element={<Dashboard />} />
+          <Route path="jobs" element={<JobBoard />} />
+          <Route path="jobs/:id" element={<JobDetail />} />
+          <Route path="assess" element={<NewAssessment />} />
+          <Route path="assess/:id" element={<AssessmentView />} />
+          <Route path="clients" element={<ClientList />} />
+          <Route path="clients/:id" element={<ClientDetail />} />
+          <Route path="invoices" element={<InvoiceList />} />
+          <Route path="expenses" element={<ExpenseList />} />
+          <Route path="expenses/new" element={<ExpenseCapture />} />
+          <Route path="crew" element={<CrewTimeLog />} />
+          <Route path="equipment" element={<EquipmentList />} />
+          <Route path="chemicals" element={<ChemicalLog />} />
+          <Route path="route" element={<RouteOptimizer />} />
+        </Route>
+      </Routes>
+    </>
   )
 }

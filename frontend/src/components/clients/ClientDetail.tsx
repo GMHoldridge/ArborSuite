@@ -38,7 +38,7 @@ export default function ClientDetail() {
           notes: c.notes || '',
         })
       } catch (err) {
-        console.error('Failed to load client', err)
+        toast.error(errorMessage(err, 'Failed to load client'))
       } finally {
         setLoading(false)
       }
@@ -57,9 +57,10 @@ export default function ClientDetail() {
         address: form.address.trim() || null,
         notes: form.notes.trim() || null,
       })
+      toast.success('Client updated')
       navigate('/clients')
     } catch (err) {
-      console.error('Failed to update client', err)
+      toast.error(errorMessage(err, 'Failed to update client'))
     } finally {
       setSaving(false)
     }
@@ -67,11 +68,13 @@ export default function ClientDetail() {
 
   async function handleDelete() {
     if (!id) return
+    const name = client?.name ?? 'Client'
     try {
       await api.delete(`/clients/${id}`)
+      toast.success(`${name} deleted`)
       navigate('/clients')
     } catch (err) {
-      console.error('Failed to delete client', err)
+      toast.error(errorMessage(err, 'Failed to delete client'))
     }
   }
 

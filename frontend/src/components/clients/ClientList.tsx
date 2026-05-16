@@ -42,11 +42,12 @@ export default function ClientList() {
         email: form.email.trim() || null,
         address: form.address.trim() || null,
       })
+      toast.success(`Client "${form.name.trim()}" added`)
       setForm({ name: '', phone: '', email: '', address: '' })
       setShowForm(false)
       await fetchClients()
     } catch (err) {
-      console.error('Failed to add client', err)
+      toast.error(errorMessage(err, 'Failed to add client'))
     } finally {
       setSaving(false)
     }
