@@ -18,6 +18,8 @@ import CrewTimeLog from './components/crew/CrewTimeLog'
 import EquipmentList from './components/equipment/EquipmentList'
 import ChemicalLog from './components/chemicals/ChemicalLog'
 import RouteOptimizer from './components/route/RouteOptimizer'
+import QuoteView from './components/quote/QuoteView'
+import SettingsPage from './components/settings/SettingsPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return hasToken() ? <>{children}</> : <Navigate to="/login" />
