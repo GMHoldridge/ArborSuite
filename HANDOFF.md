@@ -42,3 +42,16 @@ Step 1: Scaffold — setting up project configs, frontend, backend foundation
 - requirements.txt missing libsql_experimental — add before deploy or Turso falls back to ephemeral sqlite.
 
 **Still TODO:** add libsql to reqs + Turso setup; deploy; get Max's email (he uses Yahoo — needs app password for SMTP) + logo via Settings; strip demo data; test PWA install on real phone.
+
+---
+
+## 2026-06-26 (later) — DEPLOYED & VERIFIED
+**LIVE: https://arborsuite.vercel.app** (Vercel: cavityfisters-projects/arborsuite). Turso DB: arborsuite-paradox52.aws-us-east-1.turso.io. Verified: UI 200, auth/check 200 from Turso, protected routes 401, full estimate flow works against cloud DB. Auth PIN cleared → first visitor sets it. Demo data + Kustom Tree Care settings seeded.
+
+**Deploy quirks solved (don't re-learn):**
+- Native libsql-experimental CRASHES on Vercel serverless → db.py uses stdlib HTTP shim over Turso /v2/pipeline. Turso args: floats=JSON number, ints=string.
+- Vercel build needs `npm install --legacy-peer-deps` (vite8 vs @tailwindcss/vite peer conflict).
+- Deploy: `vercel deploy --prod --yes` from project dir (GitHub auto-connect lacks perms; CLI upload works).
+- FastAPI lifespan startup DOES run on Vercel.
+
+**TODO for full features on prod:** set Vercel env ANTHROPIC_API_KEY (AI assess) + BLOB_READ_WRITE_TOKEN (photos); Max's Yahoo email+app-password (SMTP) + logo via Settings; strip demo data for real use.
