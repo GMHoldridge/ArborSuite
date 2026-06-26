@@ -857,8 +857,25 @@ async def get_assessment(assessment_id: int, authorization: str | None = Header(
         if data[f]: data[f] = json.loads(data[f])
     return data
 
+# ─── Serve built frontend (single-app: UI + API one origin) ──
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+_DIST = os.path.join(os.path.dirname(__file__), "frontend", "dist")
+if os.path.isdir(_DIST):
+    _assets = os.path.join(_DIST, "assets")
+    if os.path.isdir(_assets):
+        app.mount("/assets", StaticFiles(directory=_assets), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        # API routes are registered above and match first; this only catches UI paths
+        if full_path.startswith("api/"):
+            raise HTTPException(404, "Not found")
+        candidate = os.path.join(_DIST, full_path)
+        if full_path and os.path.isfile(candidate):
+            return FileResponse(candidate)
+        return FileResponse(os.path.join(_DIST, "index.html"))
+
 if __name__ == "__main__":
     import uvicorn
-    print("ArborSuite dev server: http://localhost:8000")
-    print("Frontend dev server:   http://localhost:5173")
     uvicorn.run(app, host="0.0.0.0", port=8000)
