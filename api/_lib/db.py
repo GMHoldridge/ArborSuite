@@ -1,20 +1,103 @@
 import os
 import sqlite3
+import json
+import urllib.request
 
-try:
-    import libsql_experimental as libsql
-except ImportError:
-    libsql = None
+
+# ── Turso over HTTP ──────────────────────────────────────────────
+# The native libsql driver crashes in Vercel's serverless sandbox, so on the
+# server we talk to Turso via its HTTP pipeline API (pure stdlib). The shim
+# exposes the small slice of the sqlite3 API this app uses: connection.execute
+# (with ? params) returning a cursor with fetchone/fetchall/lastrowid, plus a
+# no-op commit (each statement autocommits over HTTP). Local dev still uses the
+# real sqlite3 file.
+
+def _coerce(cell):
+    t = cell.get("type")
+    if t == "null":
+        return None
+    v = cell.get("value")
+    if t == "integer":
+        return int(v)
+    if t == "float":
+        return float(v)
+    return v  # text / blob
+
+
+def _to_arg(p):
+    if p is None:
+        return {"type": "null"}
+    if isinstance(p, bool):
+        return {"type": "integer", "value": str(int(p))}
+    if isinstance(p, int):
+        return {"type": "integer", "value": str(p)}
+    if isinstance(p, float):
+        return {"type": "float", "value": str(p)}
+    return {"type": "text", "value": str(p)}
+
+
+class _TursoCursor:
+    def __init__(self, rows, lastrowid):
+        self._rows = rows
+        self._i = 0
+        self.lastrowid = lastrowid
+
+    def fetchone(self):
+        if self._i < len(self._rows):
+            r = self._rows[self._i]
+            self._i += 1
+            return r
+        return None
+
+    def fetchall(self):
+        r = self._rows[self._i:]
+        self._i = len(self._rows)
+        return r
+
+
+class _TursoConn:
+    def __init__(self, url, token):
+        host = url.replace("libsql://", "https://").rstrip("/")
+        self._endpoint = host + "/v2/pipeline"
+        self._token = token
+
+    def execute(self, sql, params=()):
+        body = {"requests": [
+            {"type": "execute", "stmt": {"sql": sql, "args": [_to_arg(p) for p in (params or [])]}},
+            {"type": "close"},
+        ]}
+        req = urllib.request.Request(
+            self._endpoint, data=json.dumps(body).encode(),
+            headers={"Authorization": f"Bearer {self._token}", "Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            out = json.loads(resp.read())
+        res = out["results"][0]
+        if res.get("type") == "error":
+            raise Exception(res.get("error", {}).get("message", "Turso error"))
+        result = res["response"]["result"]
+        rows = [tuple(_coerce(c) for c in row) for row in result.get("rows", [])]
+        lastrowid = result.get("last_insert_rowid")
+        try:
+            lastrowid = int(lastrowid) if lastrowid is not None else None
+        except (TypeError, ValueError):
+            lastrowid = None
+        return _TursoCursor(rows, lastrowid)
+
+    def commit(self):
+        pass
+
+    def close(self):
+        pass
+
 
 def get_db():
-    """Open a connection. Returns a fresh connection per call so it is safe to
-    use across request-handler threads (the old module-level singleton crashed
-    with 'SQLite objects created in a thread can only be used in that same
-    thread' under concurrent requests). Each handler calls get_db() once."""
+    """Turso (HTTP) on the server; a local sqlite file in dev. Returns a fresh
+    connection per call so it's safe across request-handler threads."""
     turso_url = os.environ.get("TURSO_DATABASE_URL")
     turso_token = os.environ.get("TURSO_AUTH_TOKEN")
-    if libsql and turso_url and turso_token:
-        return libsql.connect(turso_url, auth_token=turso_token)
+    if turso_url and turso_token:
+        return _TursoConn(turso_url, turso_token)
     db_path = os.path.join(os.path.dirname(__file__), '..', '..', 'arborsuite.db')
     return sqlite3.connect(db_path, check_same_thread=False)
 
