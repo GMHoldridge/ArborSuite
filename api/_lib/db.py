@@ -93,6 +93,11 @@ CREATE TABLE IF NOT EXISTS quotes (
     notes TEXT,
     sent_at TEXT,
     status TEXT DEFAULT 'draft' CHECK(status IN ('draft','sent','accepted','declined')),
+    token TEXT,
+    viewed_at TEXT,
+    view_count INTEGER DEFAULT 0,
+    responded_at TEXT,
+    client_note TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
 
