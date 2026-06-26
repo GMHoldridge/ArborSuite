@@ -107,6 +107,31 @@ def _auth(authorization: str | None):
     if not require_auth(authorization):
         raise HTTPException(401, "Unauthorized")
 
+# Explicit column list so dict-mapping is correct regardless of physical column
+# order (a migrated DB appends new columns after created_at; a fresh DB has them
+# inline — never rely on SELECT * positional order for quotes).
+QSEL = ("id, job_id, line_items, total, tax_rate, notes, sent_at, status, "
+        "token, viewed_at, view_count, responded_at, client_note, created_at")
+QCOLS2 = ["id","job_id","line_items","total","tax_rate","notes","sent_at","status",
+          "token","viewed_at","view_count","responded_at","client_note","created_at"]
+
+def _quote_dict(row):
+    d = dict(zip(QCOLS2, row))
+    d["line_items"] = json.loads(d["line_items"]) if d.get("line_items") else []
+    return d
+
+def _public_base_url():
+    base = os.environ.get("PUBLIC_BASE_URL") or os.environ.get("VERCEL_URL")
+    if base:
+        return base if base.startswith("http") else f"https://{base}"
+    return "http://localhost:5173"
+
+def _business():
+    db = get_db()
+    row = db.execute("SELECT business_name, owner_name, email, phone, address, license_number, logo_url, accent_color FROM settings WHERE id=1").fetchone()
+    cols = ["business_name","owner_name","email","phone","address","license_number","logo_url","accent_color"]
+    return dict(zip(cols, row)) if row else {c: None for c in cols}
+
 # ─── Auth ────────────────────────────────────────────
 @app.get("/api/auth/check")
 async def auth_check():
