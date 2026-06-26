@@ -1,6 +1,5 @@
 fastapi>=0.110.0
 anthropic>=0.40.0
-libsql-experimental>=0.0.50
 pyjwt>=2.8.0
 bcrypt>=4.1.0
 python-multipart>=0.0.9
