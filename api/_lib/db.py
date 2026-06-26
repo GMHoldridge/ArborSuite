@@ -20,7 +20,12 @@ def get_db():
 
 def run_migrations():
     db = get_db()
-    db.executescript(SCHEMA)
+    # Per-statement (not executescript) so this works on libsql/Turso too,
+    # whose connection doesn't implement sqlite3's executescript().
+    for stmt in SCHEMA.split(";"):
+        s = stmt.strip()
+        if s:
+            db.execute(s)
     _migrate_additive(db)
     db.commit()
 
