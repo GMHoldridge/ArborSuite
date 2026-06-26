@@ -14,7 +14,7 @@ def get_db():
     turso_url = os.environ.get("TURSO_DATABASE_URL")
     turso_token = os.environ.get("TURSO_AUTH_TOKEN")
     if libsql and turso_url and turso_token:
-        return libsql.connect(url=turso_url, auth_token=turso_token)
+        return libsql.connect(turso_url, auth_token=turso_token)
     db_path = os.path.join(os.path.dirname(__file__), '..', '..', 'arborsuite.db')
     return sqlite3.connect(db_path, check_same_thread=False)
 
