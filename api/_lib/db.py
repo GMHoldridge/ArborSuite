@@ -202,4 +202,17 @@ CREATE TABLE IF NOT EXISTS auth (
     pin_hash TEXT NOT NULL,
     created_at TEXT DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS settings (
+    id INTEGER PRIMARY KEY CHECK(id = 1),
+    business_name TEXT,
+    owner_name TEXT,
+    email TEXT,
+    phone TEXT,
+    address TEXT,
+    license_number TEXT,
+    logo_url TEXT,
+    accent_color TEXT,
+    updated_at TEXT DEFAULT (datetime('now'))
+);
 """

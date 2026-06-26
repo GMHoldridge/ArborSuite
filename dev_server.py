@@ -306,12 +306,12 @@ async def list_quotes(status: str | None = None, authorization: str | None = Hea
     if status:
         q += " WHERE q.status = ?"
         params.append(status)
+    q = q.replace("SELECT q.*, c.name", f"SELECT {QSEL.replace('id,', 'q.id,').replace(', ', ', q.')}, c.name")
     rows = db.execute(q + " ORDER BY q.created_at DESC", params).fetchall()
-    cols = ["id","job_id","line_items","total","tax_rate","notes","sent_at","status","created_at","client_name"]
     results = []
     for row in rows:
-        d = dict(zip(cols, row))
-        d["line_items"] = json.loads(d["line_items"]) if d["line_items"] else []
+        d = _quote_dict(row[:-1])
+        d["client_name"] = row[-1]
         results.append(d)
     return results
 
@@ -326,6 +326,120 @@ async def create_quote(body: QuoteCreate, authorization: str | None = Header(Non
                         [body.job_id, json.dumps(items), total, body.tax_rate, body.notes])
     db.commit()
     return {"id": cursor.lastrowid, "total": total}
+
+@app.post("/api/quotes/{quote_id}/send")
+async def send_quote(quote_id: int, authorization: str | None = Header(None)):
+    """Generate a shareable link, mark the estimate sent, and email it to the
+    client (if their email + SMTP are set). Always returns the link so the owner
+    can text it even when email isn't configured."""
+    _auth(authorization)
+    db = get_db()
+    row = db.execute(f"SELECT {QSEL} FROM quotes WHERE id=?", [quote_id]).fetchone()
+    if not row: raise HTTPException(404, "Quote not found")
+    quote = _quote_dict(row)
+    token = quote["token"] or secrets.token_urlsafe(24)
+    db.execute("UPDATE quotes SET token=?, status='sent', sent_at=COALESCE(sent_at, datetime('now')) WHERE id=?", [token, quote_id])
+    db.commit()
+    # Client + business info
+    cl = db.execute("""SELECT c.name, c.email, c.phone, j.title FROM quotes q
+                       JOIN jobs j ON q.job_id=j.id LEFT JOIN clients c ON j.client_id=c.id
+                       WHERE q.id=?""", [quote_id]).fetchone()
+    client_name, client_email, client_phone, job_title = (cl or (None, None, None, None))
+    biz = _business()
+    link = f"{_public_base_url()}/quote/{token}"
+    emailed = False
+    if client_email:
+        biz_name = biz.get("business_name") or "Your arborist"
+        html = f"""
+        <div style="font-family:system-ui,sans-serif;max-width:560px;margin:auto">
+          <h2 style="color:#228B22">Estimate from {biz_name}</h2>
+          <p>Hi {client_name or 'there'}, your estimate{f' for <b>{job_title}</b>' if job_title else ''} is ready.</p>
+          <p style="font-size:22px;font-weight:700">Total: ${quote['total']:.2f}</p>
+          <p><a href="{link}" style="background:#228B22;color:#fff;padding:12px 22px;border-radius:8px;text-decoration:none;display:inline-block">View &amp; Approve Estimate</a></p>
+          <p style="color:#666;font-size:13px">{biz_name}{(' · ' + biz['phone']) if biz.get('phone') else ''}</p>
+        </div>"""
+        try:
+            emailed = await send_email(client_email, f"Your estimate from {biz_name}", html)
+        except Exception:
+            emailed = False
+    return {"url": link, "token": token, "emailed": emailed, "client_email": client_email}
+
+# ─── Public estimate (no auth — client-facing) ───────────
+@app.get("/api/public/quote/{token}")
+async def public_quote(token: str):
+    """Client opens the estimate link. Records the view (read tracking)."""
+    db = get_db()
+    row = db.execute(f"SELECT {QSEL} FROM quotes WHERE token=?", [token]).fetchone()
+    if not row: raise HTTPException(404, "Estimate not found")
+    quote = _quote_dict(row)
+    # Read tracking: stamp first view, bump count every open
+    db.execute("UPDATE quotes SET viewed_at=COALESCE(viewed_at, datetime('now')), view_count=COALESCE(view_count,0)+1 WHERE id=?", [quote["id"]])
+    db.commit()
+    meta = db.execute("""SELECT c.name, j.title, j.description FROM quotes q
+                         JOIN jobs j ON q.job_id=j.id LEFT JOIN clients c ON j.client_id=c.id
+                         WHERE q.id=?""", [quote["id"]]).fetchone()
+    return {
+        "business": _business(),
+        "client_name": meta[0] if meta else None,
+        "job_title": meta[1] if meta else None,
+        "line_items": quote["line_items"],
+        "total": quote["total"],
+        "tax_rate": quote["tax_rate"],
+        "notes": quote["notes"],
+        "status": quote["status"],
+        "responded_at": quote["responded_at"],
+    }
+
+@app.post("/api/public/quote/{token}/respond")
+async def public_quote_respond(token: str, body: dict):
+    """Client approves or declines. Notifies the owner."""
+    action = (body or {}).get("action")
+    note = (body or {}).get("note", "")
+    if action not in ("approve", "decline"):
+        raise HTTPException(400, "action must be 'approve' or 'decline'")
+    db = get_db()
+    row = db.execute("SELECT id, job_id, status, total FROM quotes WHERE token=?", [token]).fetchone()
+    if not row: raise HTTPException(404, "Estimate not found")
+    qid, job_id, status, total = row
+    if status in ("accepted", "declined"):
+        return {"ok": True, "status": status, "already": True}
+    new_status = "accepted" if action == "approve" else "declined"
+    db.execute("UPDATE quotes SET status=?, responded_at=datetime('now'), client_note=? WHERE id=?", [new_status, note, qid])
+    if action == "approve":
+        db.execute("UPDATE jobs SET status='scheduled', updated_at=datetime('now') WHERE id=? AND status='quoted'", [job_id])
+    db.commit()
+    # Notify owner
+    biz = _business()
+    if biz.get("phone"):
+        verb = "APPROVED" if action == "approve" else "declined"
+        try:
+            await send_sms(biz["phone"], f"Estimate ${total:.2f} {verb} by client." + (f" Note: {note}" if note else ""))
+        except Exception:
+            pass
+    return {"ok": True, "status": new_status}
+
+# ─── Settings (business profile — used on estimates) ─────
+@app.get("/api/settings")
+async def get_settings(authorization: str | None = Header(None)):
+    _auth(authorization)
+    return _business()
+
+@app.put("/api/settings")
+async def update_settings(body: dict, authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    fields = ["business_name","owner_name","email","phone","address","license_number","logo_url","accent_color"]
+    db.execute("INSERT OR IGNORE INTO settings (id) VALUES (1)")
+    updates, values = [], []
+    for f in fields:
+        if f in body:
+            updates.append(f"{f}=?"); values.append(body[f])
+    if updates:
+        updates.append("updated_at=datetime('now')")
+        values.append(1)
+        db.execute(f"UPDATE settings SET {', '.join(updates)} WHERE id=?", values)
+        db.commit()
+    return _business()
 
 # ─── Invoices ────────────────────────────────────────
 ICOLS = ["id","job_id","quote_id","total","paid_amount","paid_at","payment_method","status","created_at"]
