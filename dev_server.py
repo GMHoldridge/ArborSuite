@@ -20,7 +20,21 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 @app.on_event("startup")
 def startup():
     run_migrations()
+    _seed_settings()
     _seed_demo_data()
+
+def _seed_settings():
+    """Pre-brand for Kustom Tree Care Inc. on first run. Owner can edit any of
+    this in the Settings screen (e.g. add his email + logo)."""
+    db = get_db()
+    if db.execute("SELECT COUNT(*) FROM settings").fetchone()[0] > 0:
+        return
+    db.execute(
+        """INSERT INTO settings (id, business_name, owner_name, phone, address, accent_color)
+           VALUES (1, ?, ?, ?, ?, ?)""",
+        ["Kustom Tree Care Inc.", "Max Yantachka", "(585) 991-9289",
+         "6291 Buffalo Rd, Churchville, NY 14428", "#228B22"])
+    db.commit()
 
 def _seed_demo_data():
     """Insert demo data if DB is empty."""
