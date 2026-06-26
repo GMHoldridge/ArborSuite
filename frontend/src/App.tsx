@@ -23,7 +23,32 @@ import QuoteView from './components/quote/QuoteView'
 import SettingsPage from './components/settings/SettingsPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  return hasToken() ? <>{children}</> : <Navigate to="/login" />
+  const [state, setState] = useState<'ok' | 'login' | 'checking'>(
+    hasToken() ? 'ok' : 'checking',
+  )
+
+  useEffect(() => {
+    if (hasToken()) return
+    // No token: if no PIN is configured, the app is open — auto-enter.
+    api.get<{ setup_complete: boolean }>('/auth/check')
+      .then((d) => {
+        if (!d.setup_complete) {
+          setToken('open')
+          setState('ok')
+        } else {
+          setState('login')
+        }
+      })
+      .catch(() => setState('login'))
+  }, [])
+
+  if (state === 'ok') return <>{children}</>
+  if (state === 'login') return <Navigate to="/login" />
+  return (
+    <div className="flex items-center justify-center h-dvh bg-gray-50">
+      <div className="w-8 h-8 border-4 border-[#228B22] border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
 }
 
 export default function App() {

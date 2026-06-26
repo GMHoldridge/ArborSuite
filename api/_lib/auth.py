@@ -25,7 +25,18 @@ def verify_token(token: str) -> dict | None:
     except jwt.InvalidTokenError:
         return None
 
+def _pin_is_set() -> bool:
+    """Is a PIN configured? If not, the app runs open (no login)."""
+    try:
+        from .db import get_db
+        return get_db().execute("SELECT 1 FROM auth WHERE id = 1").fetchone() is not None
+    except Exception:
+        return False
+
 def require_auth(authorization: str | None) -> bool:
+    # Open access until the owner sets a PIN (Settings can lock it later).
+    if not _pin_is_set():
+        return True
     if not authorization or not authorization.startswith("Bearer "):
         return False
     token = authorization.split(" ", 1)[1]
