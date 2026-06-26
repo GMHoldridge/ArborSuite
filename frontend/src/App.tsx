@@ -32,6 +32,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/submit/:token" element={<ClientSubmit />} />
+        <Route path="/quote/:token" element={<QuoteView />} />
         <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
           <Route index element={<Dashboard />} />
           <Route path="jobs" element={<JobBoard />} />
