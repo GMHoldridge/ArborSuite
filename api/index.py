@@ -10,12 +10,13 @@ import sys, os
 # Make project root importable so `dev_server` and `_lib` resolve.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from dev_server import app  # noqa: E402  (ASGI app Vercel will serve)
+from dev_server import app, _seed_settings  # noqa: E402  (ASGI app Vercel serves)
 
-# Ensure schema/settings exist even if the serverless runtime skips lifespan
-# startup events. Idempotent: CREATE IF NOT EXISTS + guarded ALTER/seed.
+# Serverless runtimes may skip lifespan startup events, so run schema + business
+# settings seed here. All idempotent: CREATE IF NOT EXISTS + guarded ALTER/seed.
 try:
     from _lib.db import run_migrations
     run_migrations()
+    _seed_settings()  # business profile (Kustom Tree Care Inc.) on first run
 except Exception:
     pass
