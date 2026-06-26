@@ -229,7 +229,15 @@ async def get_job(job_id: int, authorization: str | None = Header(None)):
     db = get_db()
     row = db.execute("SELECT j.*, c.name FROM jobs j LEFT JOIN clients c ON j.client_id = c.id WHERE j.id = ?", [job_id]).fetchone()
     if not row: raise HTTPException(404, "Not found")
-    return dict(zip(JCOLS + ["client_name"], row))
+    job = dict(zip(JCOLS + ["client_name"], row))
+    # Latest linked records (JobDetail renders these cards)
+    a = db.execute("SELECT id, photo_url, species, difficulty, created_at FROM assessments WHERE job_id=? ORDER BY created_at DESC LIMIT 1", [job_id]).fetchone()
+    job["assessment"] = {"id": a[0], "photo_url": a[1], "species": a[2], "difficulty": a[3], "created_at": a[4]} if a else None
+    q = db.execute("SELECT * FROM quotes WHERE job_id=? ORDER BY created_at DESC LIMIT 1", [job_id]).fetchone()
+    job["quote"] = _quote_row_to_dict(db, q) if q else None
+    inv = db.execute("SELECT id, total, status, created_at FROM invoices WHERE job_id=? ORDER BY created_at DESC LIMIT 1", [job_id]).fetchone()
+    job["invoice"] = {"id": inv[0], "total": inv[1], "status": inv[2], "created_at": inv[3]} if inv else None
+    return job
 
 @app.post("/api/jobs")
 async def create_job(body: JobCreate, authorization: str | None = Header(None)):
