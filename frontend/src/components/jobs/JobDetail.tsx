@@ -263,23 +263,78 @@ export default function JobDetail() {
           </div>
         </div>
 
-        {/* Quote */}
+        {/* Estimate */}
         <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <svg className="w-5 h-5 text-[#228B22]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 8v1" />
               </svg>
-              <span className="font-medium text-gray-900">Quote</span>
+              <span className="font-medium text-gray-900">Estimate</span>
             </div>
             {job.quote ? (
-              <span className="text-sm text-gray-500">
-                ${job.quote.total.toFixed(2)} - {job.quote.status}
-              </span>
+              <span className="text-sm font-semibold text-gray-900">${job.quote.total.toFixed(2)}</span>
             ) : (
-              <span className="text-sm text-gray-400">Not created</span>
+              <Link to={`/assess?job_id=${job.id}`} className="text-[#228B22] font-medium text-sm min-h-[48px] flex items-center">
+                Create
+              </Link>
             )}
           </div>
+
+          {job.quote && (
+            <div className="mt-3 space-y-3">
+              {/* Status line with read tracking */}
+              <div className="flex items-center gap-2 text-sm flex-wrap">
+                {job.quote.status === 'accepted' && (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">✓ Approved by client</span>
+                )}
+                {job.quote.status === 'declined' && (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">✕ Declined</span>
+                )}
+                {job.quote.status === 'sent' && (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Sent — awaiting reply</span>
+                )}
+                {job.quote.status === 'draft' && (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Draft — not sent</span>
+                )}
+                {job.quote.viewed_at ? (
+                  <span className="text-gray-500 text-xs">👁 Opened {job.quote.view_count}×</span>
+                ) : job.quote.status === 'sent' ? (
+                  <span className="text-gray-400 text-xs">Not opened yet</span>
+                ) : null}
+              </div>
+
+              {job.quote.client_note && (
+                <p className="text-xs text-gray-600 italic">“{job.quote.client_note}”</p>
+              )}
+
+              {/* Send / Resend */}
+              {(job.quote.status === 'draft' || job.quote.status === 'sent') && (
+                <button
+                  onClick={sendEstimate}
+                  disabled={sending}
+                  className="w-full py-2.5 rounded-xl bg-[#228B22] text-white font-semibold text-sm disabled:opacity-50 active:bg-[#1a6b1a] transition-colors min-h-[44px]"
+                >
+                  {sending ? 'Sending…' : job.quote.status === 'draft' ? 'Send Estimate to Client' : 'Resend Estimate'}
+                </button>
+              )}
+
+              {/* Shareable link (always available after send) */}
+              {sendResult && (
+                <div className="rounded-lg bg-gray-50 border border-gray-200 p-2.5">
+                  <p className="text-[11px] text-gray-500 mb-1">
+                    {sendResult.emailed ? `Emailed to ${sendResult.client_email}. Or share this link:` : 'Share this link with the client (text/email):'}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <input readOnly value={sendResult.url} className="flex-1 text-xs bg-white border border-gray-200 rounded px-2 py-1.5 text-gray-700" />
+                    <button onClick={() => copyLink(sendResult.url)} className="text-xs font-medium text-[#228B22] px-2 py-1.5 min-h-[36px]">
+                      {copied ? 'Copied' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Invoice */}
