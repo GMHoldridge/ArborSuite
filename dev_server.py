@@ -301,12 +301,12 @@ async def delete_job(job_id: int, authorization: str | None = Header(None)):
 async def list_quotes(status: str | None = None, authorization: str | None = Header(None)):
     _auth(authorization)
     db = get_db()
-    q = "SELECT q.*, c.name FROM quotes q JOIN jobs j ON q.job_id = j.id LEFT JOIN clients c ON j.client_id = c.id"
+    sel = ", ".join(f"q.{c}" for c in QCOLS2)
+    q = f"SELECT {sel}, c.name FROM quotes q JOIN jobs j ON q.job_id = j.id LEFT JOIN clients c ON j.client_id = c.id"
     params = []
     if status:
         q += " WHERE q.status = ?"
         params.append(status)
-    q = q.replace("SELECT q.*, c.name", f"SELECT {QSEL.replace('id,', 'q.id,').replace(', ', ', q.')}, c.name")
     rows = db.execute(q + " ORDER BY q.created_at DESC", params).fetchall()
     results = []
     for row in rows:
