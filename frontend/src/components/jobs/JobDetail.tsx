@@ -52,6 +52,34 @@ export default function JobDetail() {
   const [editingDate, setEditingDate] = useState(false)
   const [newDate, setNewDate] = useState('')
   const [updating, setUpdating] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [sendResult, setSendResult] = useState<{ url: string; emailed: boolean; client_email: string | null } | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  async function sendEstimate() {
+    if (!job?.quote) return
+    setSending(true)
+    try {
+      const res = await api.post<{ url: string; emailed: boolean; client_email: string | null }>(`/quotes/${job.quote.id}/send`)
+      setSendResult(res)
+      setJob({ ...job, quote: { ...job.quote, status: 'sent', sent_at: new Date().toISOString() } })
+      toast.success(res.emailed ? `Emailed to ${res.client_email}` : 'Estimate ready — copy the link to send it')
+    } catch (e: unknown) {
+      toast.error(errorMessage(e, 'Failed to send estimate'))
+    } finally {
+      setSending(false)
+    }
+  }
+
+  async function copyLink(url: string) {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    } catch {
+      toast.error('Could not copy')
+    }
+  }
 
   useEffect(() => {
     api.get<JobDetailResponse>(`/jobs/${id}`)
