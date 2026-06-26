@@ -6,19 +6,17 @@ try:
 except ImportError:
     libsql = None
 
-_conn = None
-
 def get_db():
-    global _conn
-    if _conn is None:
-        turso_url = os.environ.get("TURSO_DATABASE_URL")
-        turso_token = os.environ.get("TURSO_AUTH_TOKEN")
-        if libsql and turso_url and turso_token:
-            _conn = libsql.connect(url=turso_url, auth_token=turso_token)
-        else:
-            db_path = os.path.join(os.path.dirname(__file__), '..', '..', 'arborsuite.db')
-            _conn = sqlite3.connect(db_path)
-    return _conn
+    """Open a connection. Returns a fresh connection per call so it is safe to
+    use across request-handler threads (the old module-level singleton crashed
+    with 'SQLite objects created in a thread can only be used in that same
+    thread' under concurrent requests). Each handler calls get_db() once."""
+    turso_url = os.environ.get("TURSO_DATABASE_URL")
+    turso_token = os.environ.get("TURSO_AUTH_TOKEN")
+    if libsql and turso_url and turso_token:
+        return libsql.connect(url=turso_url, auth_token=turso_token)
+    db_path = os.path.join(os.path.dirname(__file__), '..', '..', 'arborsuite.db')
+    return sqlite3.connect(db_path, check_same_thread=False)
 
 def run_migrations():
     db = get_db()
