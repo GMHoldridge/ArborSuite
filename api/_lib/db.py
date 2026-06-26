@@ -21,7 +21,23 @@ def get_db():
 def run_migrations():
     db = get_db()
     db.executescript(SCHEMA)
+    _migrate_additive(db)
     db.commit()
+
+def _migrate_additive(db):
+    """Add columns/tables to DBs created before a schema change.
+    CREATE TABLE IF NOT EXISTS won't alter an existing table, so any column
+    added to SCHEMA after a DB already exists must be ALTER'd in here."""
+    existing = {r[1] for r in db.execute("PRAGMA table_info(quotes)").fetchall()}
+    for col, ddl in [
+        ("token", "ALTER TABLE quotes ADD COLUMN token TEXT"),
+        ("viewed_at", "ALTER TABLE quotes ADD COLUMN viewed_at TEXT"),
+        ("view_count", "ALTER TABLE quotes ADD COLUMN view_count INTEGER DEFAULT 0"),
+        ("responded_at", "ALTER TABLE quotes ADD COLUMN responded_at TEXT"),
+        ("client_note", "ALTER TABLE quotes ADD COLUMN client_note TEXT"),
+    ]:
+        if col not in existing:
+            db.execute(ddl)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS clients (
