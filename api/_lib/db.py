@@ -32,7 +32,7 @@ def _to_arg(p):
     if isinstance(p, int):
         return {"type": "integer", "value": str(p)}
     if isinstance(p, float):
-        return {"type": "float", "value": str(p)}
+        return {"type": "float", "value": p}  # Turso wants f64 as a JSON number
     return {"type": "text", "value": str(p)}
 
 
