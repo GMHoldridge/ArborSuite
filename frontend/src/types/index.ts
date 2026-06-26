@@ -70,8 +70,24 @@ export interface Quote {
   notes: string | null
   sent_at: string | null
   status: 'draft' | 'sent' | 'accepted' | 'declined'
+  token: string | null
+  viewed_at: string | null
+  view_count: number
+  responded_at: string | null
+  client_note: string | null
   created_at: string
   client_name?: string
+}
+
+export interface Settings {
+  business_name: string | null
+  owner_name: string | null
+  email: string | null
+  phone: string | null
+  address: string | null
+  license_number: string | null
+  logo_url: string | null
+  accent_color: string | null
 }
 
 export interface QuoteLineItem {

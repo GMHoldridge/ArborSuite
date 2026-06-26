@@ -9,6 +9,7 @@ from _lib.auth import hash_pin, check_pin, create_token, require_auth
 from _lib.models import *
 from _lib.weather import get_forecast
 from _lib.claude_vision import assess_tree_photo
+from _lib.notifications import send_email, send_sms
 import json, secrets
 
 os.environ.setdefault("JWT_SECRET", "dev-secret-change-in-prod-1234567890ab")
