@@ -49,6 +49,7 @@ const moreItems = [
   { to: '/route', label: 'Route Planner', icon: '🗺️' },
   { to: '/clients', label: 'Clients', icon: '👥' },
   { to: '/expenses', label: 'Expenses', icon: '💰' },
+  { to: '/settings', label: 'Settings', icon: '⚙️' },
 ]
 
 export default function AppShell() {

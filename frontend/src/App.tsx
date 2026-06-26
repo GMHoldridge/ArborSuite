@@ -48,6 +48,7 @@ export default function App() {
           <Route path="equipment" element={<EquipmentList />} />
           <Route path="chemicals" element={<ChemicalLog />} />
           <Route path="route" element={<RouteOptimizer />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Routes>
     </>
