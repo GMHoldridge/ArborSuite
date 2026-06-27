@@ -891,6 +891,52 @@ async def get_assessment(assessment_id: int, authorization: str | None = Header(
         if data[f]: data[f] = json.loads(data[f])
     return data
 
+@app.post("/api/assess/scan")
+async def assess_scan(file: UploadFile = File(...), authorization: str | None = Header(None)):
+    """Run a tree-photo assessment. Desktop (Ollama): inline. Cloud: queue a
+    'tree' vision_job for the worker; client polls /api/vision-jobs/{id}."""
+    _auth(authorization)
+    content = await file.read()
+    if len(content) > 12 * 1024 * 1024:
+        raise HTTPException(400, "Image too large (max 12MB)")
+    b64 = base64.b64encode(content).decode()
+    if vision_available():
+        try:
+            return {"result": assess_tree(b64), "done": True}
+        except Exception as e:
+            raise HTTPException(500, f"Assessment failed: {e}")
+    db = get_db()
+    cur = db.execute("INSERT INTO vision_jobs (kind, image_b64, status) VALUES ('tree', ?, 'pending')", [b64])
+    db.commit()
+    return {"job_id": cur.lastrowid, "pending": True}
+
+@app.post("/api/assess/save")
+async def assess_save(body: dict, authorization: str | None = Header(None)):
+    """Persist a completed tree assessment (result from /assess/scan)."""
+    _auth(authorization)
+    result = (body or {}).get("result") or {}
+    job_id = (body or {}).get("job_id")
+    photo_url = (body or {}).get("photo_url")
+    if (body or {}).get("client_notes"):
+        result["client_notes"] = body["client_notes"]
+    db = get_db()
+    cur = db.execute(
+        "INSERT INTO assessments (job_id,photo_url,ai_response,species,height_est,difficulty,time_est_hours,equipment_needed,hazards) VALUES (?,?,?,?,?,?,?,?,?)",
+        [job_id, photo_url, json.dumps(result), result.get("species"), result.get("height_estimate_ft"),
+         result.get("difficulty_rating"), result.get("time_estimate_hours"),
+         json.dumps(result.get("equipment_suggested", [])), json.dumps(result.get("hazards", []))])
+    db.commit()
+    return {"id": cur.lastrowid, "assessment": result}
+
+@app.put("/api/assess/{assessment_id}/corrections")
+async def update_assessment_corrections(assessment_id: int, body: dict, authorization: str | None = Header(None)):
+    """Owner edits to the AI assessment."""
+    _auth(authorization)
+    db = get_db()
+    db.execute("UPDATE assessments SET owner_corrections=? WHERE id=?", [json.dumps(body or {}), assessment_id])
+    db.commit()
+    return {"ok": True}
+
 # ─── Planner scan (handwritten notebook → jobs) ──────────
 @app.post("/api/planner/scan")
 async def planner_scan(file: UploadFile = File(...), authorization: str | None = Header(None)):

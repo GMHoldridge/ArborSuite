@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../../api/client'
 import { toast, errorMessage } from '../../stores/toast'
-import type { Client, Job, Assessment } from '../../types/index'
+import type { Client, Job } from '../../types/index'
 
 const MAX_IMAGE_SIZE = 1920
 
