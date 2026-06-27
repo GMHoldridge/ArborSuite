@@ -82,38 +82,65 @@ export default function NewAssessment() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  async function thumbnail(file: File): Promise<string | null> {
+    try {
+      const img = await new Promise<HTMLImageElement>((res, rej) => {
+        const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file)
+      })
+      const max = 640
+      const scale = Math.min(1, max / Math.max(img.width, img.height))
+      const c = document.createElement('canvas')
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale)
+      c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height)
+      return c.toDataURL('image/jpeg', 0.6)
+    } catch { return null }
+  }
+
+  async function pollAssess(jobId: number): Promise<Record<string, unknown>> {
+    for (let i = 0; i < 60; i++) {
+      await new Promise((r) => setTimeout(r, 3000))
+      const j = await api.get<{ status: string; result?: Record<string, unknown>; error?: string }>(`/vision-jobs/${jobId}`)
+      if (j.status === 'done') return j.result || {}
+      if (j.status === 'error') throw new Error(j.error || 'Assessment failed')
+    }
+    throw new Error('Timed out waiting for the assessment')
+  }
+
   async function handleSubmit() {
     if (!selectedFile) {
       setError('Please select a photo first')
       return
     }
-
     setError('')
     setUploading(true)
-
     try {
       const resized = await resizeImage(selectedFile)
       const form = new FormData()
-      form.append('file', resized, selectedFile.name)
-      if (jobId) form.append('job_id', jobId)
-      if (clientId) form.append('client_id', clientId)
+      form.append('file', new File([resized], 'tree.jpg', { type: 'image/jpeg' }))
 
-      const uploadRes = await api.post<{ photo_url: string }>('/upload', form)
-
+      const scan = await api.post<{ result?: Record<string, unknown>; done?: boolean; pending?: boolean; job_id?: number }>(
+        '/assess/scan', form,
+      )
       setUploading(false)
       setAnalyzing(true)
 
-      const assessment = await api.post<Assessment>('/assess', {
-        photo_url: uploadRes.photo_url,
+      let result: Record<string, unknown>
+      if (scan.done) result = scan.result || {}
+      else if (scan.pending && scan.job_id) result = await pollAssess(scan.job_id)
+      else throw new Error('Assessment did not start')
+
+      const photo_url = await thumbnail(selectedFile)
+      const saved = await api.post<{ id: number }>('/assess/save', {
+        result,
         job_id: jobId ? Number(jobId) : null,
-        client_id: clientId ? Number(clientId) : null,
         client_notes: notes || null,
+        photo_url,
       })
 
       toast.success('Assessment created')
-      navigate(`/assess/${assessment.id}`)
+      navigate(`/assess/${saved.id}`)
     } catch (e: unknown) {
-      const msg = errorMessage(e, 'Upload failed')
+      const msg = errorMessage(e, 'Assessment failed')
       setError(msg)
       toast.error(msg)
       setUploading(false)
