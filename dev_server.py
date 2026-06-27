@@ -861,19 +861,37 @@ async def get_assessment(assessment_id: int, authorization: str | None = Header(
 # ─── Planner scan (handwritten notebook → jobs) ──────────
 @app.post("/api/planner/scan")
 async def planner_scan(file: UploadFile = File(...), authorization: str | None = Header(None)):
-    """OCR a photo of the handwritten planner into editable entries (no DB write).
-    Runs on free local vision (Ollama qwen2.5vl + Claude CLI) — desktop only."""
+    """OCR a handwritten planner photo into editable entries.
+    Desktop (Ollama present): process inline. Cloud (no GPU): queue a vision_job
+    for the desktop worker to pick up; client polls /api/vision-jobs/{id}."""
     _auth(authorization)
-    if not vision_available():
-        raise HTTPException(503, "Vision runs on the desktop (Ollama). Open the app on the desktop/Tailscale to scan.")
     content = await file.read()
     if len(content) > 12 * 1024 * 1024:
         raise HTTPException(400, "Image too large (max 12MB)")
-    try:
-        entries = scan_planner(base64.b64encode(content).decode())
-    except Exception as e:
-        raise HTTPException(500, f"Scan failed: {e}")
-    return {"entries": entries}
+    b64 = base64.b64encode(content).decode()
+    if vision_available():
+        try:
+            return {"entries": scan_planner(b64), "done": True}
+        except Exception as e:
+            raise HTTPException(500, f"Scan failed: {e}")
+    db = get_db()
+    cur = db.execute("INSERT INTO vision_jobs (kind, image_b64, status) VALUES ('planner', ?, 'pending')", [b64])
+    db.commit()
+    return {"job_id": cur.lastrowid, "pending": True}
+
+@app.get("/api/vision-jobs/{job_id}")
+async def vision_job_status(job_id: int, authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    row = db.execute("SELECT status, result, error FROM vision_jobs WHERE id=?", [job_id]).fetchone()
+    if not row:
+        raise HTTPException(404, "Job not found")
+    out = {"status": row[0]}
+    if row[1]:
+        out["result"] = json.loads(row[1])
+    if row[2]:
+        out["error"] = row[2]
+    return out
 
 @app.post("/api/planner/import")
 async def planner_import(body: dict, authorization: str | None = Header(None)):

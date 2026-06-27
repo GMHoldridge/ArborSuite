@@ -291,6 +291,17 @@ CREATE TABLE IF NOT EXISTS auth (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS vision_jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind TEXT,
+    image_b64 TEXT,
+    status TEXT DEFAULT 'pending',
+    result TEXT,
+    error TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS settings (
     id INTEGER PRIMARY KEY CHECK(id = 1),
     business_name TEXT,
