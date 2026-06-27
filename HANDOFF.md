@@ -91,3 +91,6 @@ Each upcoming job (next 7d, with coords) gets a wind/rain/storm/heat/freeze risk
 
 ## 2026-06-27 — Address geocoding (closes the weather/route gap)
 _lib/geocode.py: keyless geocode(address) → (lat,lon) via US Census geocoder, Nominatim fallback; best-effort (never raises). Auto-runs on client create/update (_maybe_geocode) + planner import; worker backfill_clients() each 30min cycle (before weather). Verified: Max's Churchville addr, Portland, Empire State Bldg all resolved correctly; client created via API auto-filled coords. Now scan-planner → clients w/ addresses → geocoded → jobs inherit client coords → weather alerts + route optimizer work. (Jobs use job.location_lat/lon, fall back to client coords.)
+
+## 2026-06-27 — In-app roadmap + feature requests ("What's Coming")
+Purpose: show Max what's on the way (sets expectations) + collect his ideas (the "do this/try this" loop). ROADMAP list is curated in dev_server.py (edit there: status 'coming'|'shipped'); **email is the #1 'coming' item** (his big complaint). feature_requests table + /api/roadmap + /api/feature-requests. Roadmap page (/roadmap, nav "💡 What's Coming"): suggest-an-idea box, Coming Soon, Recently Shipped, submitted ideas list. To add/reorder roadmap items just edit ROADMAP in dev_server.py + redeploy. Consider later: surface new requests on Geoff's dashboard + a status-update control.
