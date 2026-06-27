@@ -940,8 +940,10 @@ async def planner_import(body: dict, authorization: str | None = Header(None)):
             if row:
                 client_id = row[0]
             else:
-                cur = db.execute("INSERT INTO clients (name, address) VALUES (?, ?)",
-                                 [name, e.get("address")])
+                addr = e.get("address")
+                glat, glon = _maybe_geocode(addr, None, None)
+                cur = db.execute("INSERT INTO clients (name, address, lat, lon) VALUES (?, ?, ?, ?)",
+                                 [name, addr, glat, glon])
                 client_id = cur.lastrowid
                 created["clients"] += 1
         work = (e.get("work") or "Job").strip()

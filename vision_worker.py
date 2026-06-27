@@ -37,8 +37,15 @@ def main():
     print(f"vision_worker up — polling every {POLL_SECONDS}s", flush=True)
     last_weather = 0.0
     while True:
-        # Periodic weather refresh for upcoming jobs (every 30 min)
+        # Periodic geocode backfill + weather refresh (every 30 min)
         if time.time() - last_weather > 1800:
+            try:
+                from _lib.geocode import backfill_clients
+                n = backfill_clients(get_db())
+                if n:
+                    print(f"geocoded {n} client(s)", flush=True)
+            except Exception as e:
+                print(f"geocode error: {e}", flush=True)
             try:
                 from _lib.weather import refresh_jobs_weather
                 alerts = refresh_jobs_weather(get_db())
