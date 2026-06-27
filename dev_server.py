@@ -11,6 +11,7 @@ from _lib.weather import get_forecast
 from _lib.claude_vision import assess_tree_photo
 from _lib.notifications import send_email, send_sms
 from _lib.vision import scan_planner, vision_available
+from _lib.geocode import geocode
 import json, secrets, base64
 
 os.environ.setdefault("JWT_SECRET", "dev-secret-change-in-prod-1234567890ab")
