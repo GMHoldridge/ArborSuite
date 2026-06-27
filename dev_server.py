@@ -194,6 +194,12 @@ async def dashboard(authorization: str | None = Header(None)):
            WHERE j.status IN ('scheduled','quoted')
            AND j.scheduled_date BETWEEN date('now') AND date('now','+7 days')
            ORDER BY j.scheduled_date LIMIT 5""").fetchall()
+    wx = db.execute(
+        """SELECT j.id, j.title, j.scheduled_date, j.weather_status, j.risk_score, c.name
+           FROM jobs j LEFT JOIN clients c ON j.client_id = c.id
+           WHERE j.weather_status IN ('yellow','red')
+             AND j.scheduled_date BETWEEN date('now') AND date('now','+7 days')
+           ORDER BY CASE j.weather_status WHEN 'red' THEN 0 ELSE 1 END, j.scheduled_date""").fetchall()
     return {
         "job_counts": job_counts,
         "unpaid_invoices": {"count": unpaid[0], "total": unpaid[1]},
@@ -201,6 +207,7 @@ async def dashboard(authorization: str | None = Header(None)):
         "month_expenses": expenses[0],
         "month_profit": revenue[0] - expenses[0],
         "upcoming_jobs": [{"id": r[0], "title": r[1], "date": r[2], "client": r[3]} for r in upcoming],
+        "weather_alerts": [{"id": r[0], "title": r[1], "date": r[2], "status": r[3], "risk": r[4], "client": r[5]} for r in wx],
     }
 
 # ─── Clients ─────────────────────────────────────────
