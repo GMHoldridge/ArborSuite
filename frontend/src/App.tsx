@@ -78,6 +78,7 @@ export default function App() {
           <Route path="route" element={<RouteOptimizer />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="planner" element={<PlannerScan />} />
+          <Route path="roadmap" element={<Roadmap />} />
         </Route>
       </Routes>
     </>

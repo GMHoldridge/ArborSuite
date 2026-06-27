@@ -291,6 +291,14 @@ CREATE TABLE IF NOT EXISTS auth (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS feature_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    text TEXT NOT NULL,
+    submitted_by TEXT,
+    status TEXT DEFAULT 'new' CHECK(status IN ('new','planned','done','declined')),
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS vision_jobs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     kind TEXT,

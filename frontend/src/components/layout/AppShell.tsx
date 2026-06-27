@@ -51,6 +51,7 @@ const moreItems = [
   { to: '/clients', label: 'Clients', icon: '👥' },
   { to: '/expenses', label: 'Expenses', icon: '💰' },
   { to: '/settings', label: 'Settings', icon: '⚙️' },
+  { to: '/roadmap', label: "What's Coming", icon: '💡' },
 ]
 
 export default function AppShell() {

@@ -966,6 +966,50 @@ async def planner_import(body: dict, authorization: str | None = Header(None)):
     db.commit()
     return {"ok": True, "created": created}
 
+# ─── Roadmap + feature requests ──────────────────────────
+ROADMAP = [
+    {"title": "Email estimates & invoices to clients", "status": "coming",
+     "desc": "Send estimates and invoices straight to the client's inbox — with delivery and read tracking, no more chasing paper."},
+    {"title": "AI tree assessment from a photo", "status": "coming",
+     "desc": "Snap a photo of a tree and get species, hazards, access notes, suggested equipment, and a time estimate to speed up quoting."},
+    {"title": "Before/after job photos", "status": "coming",
+     "desc": "Attach photos to each job for records, disputes, and marketing."},
+    {"title": "Route optimization", "status": "coming",
+     "desc": "Order the day's jobs into the most efficient driving route."},
+    {"title": "Recurring & seasonal reminders", "status": "coming",
+     "desc": "Auto-remind for annual trims, treatments, and follow-ups so repeat work doesn't slip."},
+    {"title": "Estimates: send, track opens & approve online", "status": "shipped",
+     "desc": "Build an estimate, send a link, see when the client opens it, and let them approve with one tap."},
+    {"title": "Scan paper planner into jobs", "status": "shipped",
+     "desc": "Photograph a notebook page and it pulls out the jobs automatically."},
+    {"title": "Per-job weather alerts", "status": "shipped",
+     "desc": "Flags upcoming jobs with high wind, rain, or storm risk for their location and day."},
+    {"title": "Automatic address mapping", "status": "shipped",
+     "desc": "Turns client addresses into map coordinates for weather and routing."},
+]
+
+@app.get("/api/roadmap")
+async def get_roadmap(authorization: str | None = Header(None)):
+    _auth(authorization)
+    db = get_db()
+    reqs = db.execute("SELECT id, text, submitted_by, status, created_at FROM feature_requests ORDER BY created_at DESC").fetchall()
+    return {
+        "roadmap": ROADMAP,
+        "requests": [{"id": r[0], "text": r[1], "submitted_by": r[2], "status": r[3], "created_at": r[4]} for r in reqs],
+    }
+
+@app.post("/api/feature-requests")
+async def submit_feature_request(body: dict, authorization: str | None = Header(None)):
+    _auth(authorization)
+    text = (body or {}).get("text", "").strip()
+    if not text:
+        raise HTTPException(400, "Empty request")
+    db = get_db()
+    cur = db.execute("INSERT INTO feature_requests (text, submitted_by) VALUES (?, ?)",
+                     [text[:1000], (body or {}).get("submitted_by", "")[:80]])
+    db.commit()
+    return {"id": cur.lastrowid, "ok": True}
+
 # ─── Serve built frontend (single-app: UI + API one origin) ──
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
