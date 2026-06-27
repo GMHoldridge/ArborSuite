@@ -76,6 +76,7 @@ export default function App() {
           <Route path="chemicals" element={<ChemicalLog />} />
           <Route path="route" element={<RouteOptimizer />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="planner" element={<PlannerScan />} />
         </Route>
       </Routes>
     </>

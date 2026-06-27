@@ -43,6 +43,7 @@ const navItems = [
 ]
 
 const moreItems = [
+  { to: '/planner', label: 'Scan Planner', icon: '📝' },
   { to: '/crew', label: 'Crew & Time', icon: '👷' },
   { to: '/equipment', label: 'Equipment', icon: '🪚' },
   { to: '/chemicals', label: 'Chemicals', icon: '🧪' },
