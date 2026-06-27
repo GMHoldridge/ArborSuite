@@ -130,37 +130,50 @@ def assess_tree(image_b64: str) -> dict:
     return data
 
 
-# ── Planner OCR (composite: qwen2.5vl eyes + Claude CLI brain) ───────
-_OCR_PROMPT = (
+# ── Planner OCR (composite: VLM transcribes → CLI/text-model structures) ──
+# VLMs are reliable at transcription but flaky at emitting a clean JSON ARRAY,
+# so we split the job: qwen2.5vl reads the page to plain text, then the Claude
+# CLI (or a local text model fallback) turns that text into structured jobs.
+_TRANSCRIBE_PROMPT = (
     "This is a photo of a tree-service company's handwritten planner/notebook page. "
-    "Transcribe EVERY job entry you can read. Return ONLY a JSON array; each item: "
-    "{\"day\": string|null, \"client\": string|null, \"address\": string|null, "
-    "\"work\": string, \"price\": number|null}. Keep the work text faithful to what's "
-    "written. If a line is unreadable, include it with your best guess. JSON only."
+    "Transcribe it EXACTLY as written, one line per line. Output plain text only — "
+    "no JSON, no commentary, no extra words. Just the transcription."
 )
 
-_STRUCTURE_SYS = "You clean up OCR of a tree-service planner. Return ONLY valid JSON, no prose."
+_STRUCTURE_SYS = "You convert a tree-service planner transcription into structured data. Output ONLY a JSON array, nothing else."
 _STRUCTURE_USER = (
-    "Here is raw OCR of a handwritten planner page. Normalize it into a clean JSON array "
-    "of jobs with fields day, client, address, work, price (number or null). Fix obvious "
-    "OCR slips, split client vs address, strip $ from price. Return ONLY the JSON array.\n\nOCR:\n"
+    "Below is a transcription of a handwritten tree-service planner page. Turn it into a "
+    "JSON ARRAY of jobs. Each element: {\"day\": string|null, \"client\": string|null, "
+    "\"address\": string|null, \"work\": string, \"price\": number|null}. One element per "
+    "job. Split client name from address. Remove the $ from price (number only). If a "
+    "field is unknown use null. Return ONLY the JSON array (use [] if no jobs).\n\n"
+    "TRANSCRIPTION:\n"
 )
+
+
+def _structure_entries(transcription: str) -> list:
+    """Transcription text -> list of job dicts. Claude CLI first (free), then a
+    local text model, both forced to emit a JSON array."""
+    for attempt in (
+        lambda: _claude_cli(_STRUCTURE_SYS, _STRUCTURE_USER + transcription),
+        lambda: _ollama_text("qwen2.5-coder:7b", _STRUCTURE_SYS + "\n\n" + _STRUCTURE_USER + transcription),
+        lambda: _ollama_text("llama3.2:latest", _STRUCTURE_SYS + "\n\n" + _STRUCTURE_USER + transcription),
+    ):
+        try:
+            data = _loads(attempt() or "")
+        except Exception:
+            data = None
+        if isinstance(data, dict):
+            data = data.get("jobs") or next((v for v in data.values() if isinstance(v, list)), None)
+        if isinstance(data, list) and data:
+            return data
+    return []
 
 
 def scan_planner(image_b64: str) -> list[dict]:
     """Read a handwritten planner page into structured job entries."""
-    raw = _ollama_vision(OCR_MODEL, _OCR_PROMPT, image_b64, as_json=True)
-    vlm = _loads(raw)
-    entries = vlm.get("jobs") if isinstance(vlm, dict) else vlm
-    if not isinstance(entries, list):
-        entries = []
-
-    # Composite brain pass: let the free Claude CLI clean/normalize (best effort).
-    cleaned = _claude_cli(_STRUCTURE_SYS, _STRUCTURE_USER + json.dumps(entries))
-    cli = _loads(cleaned) if cleaned else None
-    if isinstance(cli, dict):
-        cli = cli.get("jobs")
-    final = cli if isinstance(cli, list) and cli else entries
+    transcription = _ollama_vision(OCR_MODEL, _TRANSCRIBE_PROMPT, image_b64, as_json=False)
+    final = _structure_entries(transcription) if transcription else []
 
     out = []
     for e in final:
