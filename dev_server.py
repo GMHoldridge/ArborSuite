@@ -229,21 +229,34 @@ async def get_client(client_id: int, authorization: str | None = Header(None)):
     cols = ["id","name","phone","email","address","lat","lon","notes","created_at","updated_at"]
     return dict(zip(cols, row))
 
+def _maybe_geocode(address, lat, lon):
+    """Fill coords from the address if missing (best-effort; never raises)."""
+    if address and (lat is None or lon is None):
+        try:
+            c = geocode(address)
+            if c:
+                return c
+        except Exception:
+            pass
+    return lat, lon
+
 @app.post("/api/clients")
 async def create_client(body: ClientCreate, authorization: str | None = Header(None)):
     _auth(authorization)
+    lat, lon = _maybe_geocode(body.address, body.lat, body.lon)
     db = get_db()
     cursor = db.execute("INSERT INTO clients (name,phone,email,address,lat,lon,notes) VALUES (?,?,?,?,?,?,?)",
-                        [body.name, body.phone, body.email, body.address, body.lat, body.lon, body.notes])
+                        [body.name, body.phone, body.email, body.address, lat, lon, body.notes])
     db.commit()
     return {"id": cursor.lastrowid}
 
 @app.put("/api/clients/{client_id}")
 async def update_client(client_id: int, body: ClientCreate, authorization: str | None = Header(None)):
     _auth(authorization)
+    lat, lon = _maybe_geocode(body.address, body.lat, body.lon)
     db = get_db()
     db.execute("UPDATE clients SET name=?,phone=?,email=?,address=?,lat=?,lon=?,notes=?,updated_at=datetime('now') WHERE id=?",
-               [body.name, body.phone, body.email, body.address, body.lat, body.lon, body.notes, client_id])
+               [body.name, body.phone, body.email, body.address, lat, lon, body.notes, client_id])
     db.commit()
     return {"ok": True}
 
