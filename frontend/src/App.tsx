@@ -22,6 +22,7 @@ import RouteOptimizer from './components/route/RouteOptimizer'
 import QuoteView from './components/quote/QuoteView'
 import SettingsPage from './components/settings/SettingsPage'
 import PlannerScan from './components/planner/PlannerScan'
+import Roadmap from './components/roadmap/Roadmap'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<'ok' | 'login' | 'checking'>(
