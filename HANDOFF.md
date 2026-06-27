@@ -76,3 +76,11 @@ Max can now scan from the CLOUD site. Verified end-to-end (~45s): POST cloud /ap
 - Desktop instance still processes inline (vision_available True). Frontend compresses image client-side (~1100px JPEG) then polls every 3s.
 - **TWO desktop processes must stay running** (currently launched from a background shell — NOT yet auto-start): `dev_server.py` (port 8000, tailnet, Turso+Ollama env) and `vision_worker.py` (Turso+ARBOR_OLLAMA_URL env). On reboot these die → cloud scanning stops until restarted. TODO: make them auto-start (Windows Task at logon, or warden_services) — Geoff's PC is 24/7 + UPS incoming, but they still need to survive reboots. python-multipart must be in ROOT requirements.txt (Vercel installs that, not api/).
 - **Anthropic API path (B)** = the always-on upgrade for when Max pays; flip vision to API on Vercel, drop the desktop dependency.
+
+## 2026-06-27 — Auto-start via Windows Tasks (persistent)
+Two scheduled tasks (at logon, no time limit, RestartCount 3) now run the desktop app + worker so they survive reboots:
+- **"ArborSuite App"** → `powershell -WindowStyle Hidden -File C:\Users\Ghold\arborsuite-svc\launcher_app.ps1` (dev_server.py, port 8000)
+- **"ArborSuite Vision Worker"** → `...\launcher_worker.ps1` (vision_worker.py)
+- Launchers live in `C:\Users\Ghold\arborsuite-svc\` (OUTSIDE the git repo on purpose — they hold the Turso token; never commit). Logs: app.log / worker.log there.
+- Manage: `Start-ScheduledTask`/`Stop-ScheduledTask -TaskName "ArborSuite App"`. To change env/token, edit the launcher .ps1 + restart the task.
+- NOTE: venv python.exe is a shim → each launch shows 2 python procs (shim+real); expected, not a duplicate instance. Verified: clean restart via tasks → app up + cloud scan processed in ~38s.
