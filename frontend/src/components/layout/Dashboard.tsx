@@ -21,6 +21,7 @@ export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [refreshingWx, setRefreshingWx] = useState(false)
 
   useEffect(() => {
     api.get<DashboardData>('/dashboard')
@@ -28,6 +29,16 @@ export default function Dashboard() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
   }, [])
+
+  async function refreshWeather() {
+    setRefreshingWx(true)
+    try {
+      await api.post('/jobs/weather/refresh')
+      setData(await api.get<DashboardData>('/dashboard'))
+    } catch { /* weather is best-effort */ } finally {
+      setRefreshingWx(false)
+    }
+  }
 
   if (loading) {
     return (
