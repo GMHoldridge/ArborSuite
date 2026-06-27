@@ -69,3 +69,10 @@ Step 1: Scaffold — setting up project configs, frontend, backend foundation
 - DESKTOP (tailnet https://desktop-dm7rpgf.tail973c90.ts.net, runs dev_server.py with TURSO_* + ARBOR_OLLAMA_URL env): same app + WORKING vision. This is where Geoff scans the notebook / runs assessments. Data lands in Turso → Max sees it in cloud.
 - Desktop instance started via: TURSO_DATABASE_URL/TURSO_AUTH_TOKEN/ARBOR_OLLAMA_URL env + `python dev_server.py` (port 8000), proxied by `tailscale serve`.
 **Gotcha:** desktop instance uses dev-default JWT_SECRET, cloud uses its own — fine while OPEN (no PIN); if a PIN is ever set, align JWT_SECRET across both or tokens won't cross-validate.
+
+## 2026-06-27 — Cloud scanning via outbound worker queue (no exposure)
+Max can now scan from the CLOUD site. Verified end-to-end (~45s): POST cloud /api/planner/scan → {job_id,pending} → desktop worker processes → poll /api/vision-jobs/{id} → done.
+- **Pattern:** cloud has no GPU, so /api/planner/scan ENQUEUES a row in `vision_jobs` (Turso). `vision_worker.py` on the desktop POLLS Turso outbound-only (no inbound exposure — this is why Tailscale Funnel/public tunnel was avoided; the approver kept blocking it and this is cleaner anyway). Worker runs scan_planner/assess_tree on Ollama, writes result back, clears image_b64.
+- Desktop instance still processes inline (vision_available True). Frontend compresses image client-side (~1100px JPEG) then polls every 3s.
+- **TWO desktop processes must stay running** (currently launched from a background shell — NOT yet auto-start): `dev_server.py` (port 8000, tailnet, Turso+Ollama env) and `vision_worker.py` (Turso+ARBOR_OLLAMA_URL env). On reboot these die → cloud scanning stops until restarted. TODO: make them auto-start (Windows Task at logon, or warden_services) — Geoff's PC is 24/7 + UPS incoming, but they still need to survive reboots. python-multipart must be in ROOT requirements.txt (Vercel installs that, not api/).
+- **Anthropic API path (B)** = the always-on upgrade for when Max pays; flip vision to API on Vercel, drop the desktop dependency.
