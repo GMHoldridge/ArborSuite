@@ -45,6 +45,19 @@ def _ollama_vision(model: str, prompt: str, image_b64: str, as_json: bool = True
         return json.loads(resp.read()).get("response", "").strip()
 
 
+def _ollama_text(model: str, prompt: str) -> str:
+    """Text-only Ollama call (used as the free fallback 'brain' when the Claude
+    CLI isn't available to structure the transcription)."""
+    payload = {"model": model, "prompt": prompt, "stream": False,
+               "options": {"temperature": 0.1, "num_predict": 1500}}
+    req = urllib.request.Request(
+        f"{OLLAMA_URL}/api/generate", data=json.dumps(payload).encode(),
+        headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=_TIMEOUT) as resp:
+        return json.loads(resp.read()).get("response", "").strip()
+
+
 def _claude_cli(system: str, user: str, timeout: int = 60) -> str | None:
     """Best-effort text call to the free Claude CLI (subscription). Returns None
     if the CLI isn't installed/available — caller falls back to the VLM output."""
