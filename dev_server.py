@@ -858,6 +858,61 @@ async def get_assessment(assessment_id: int, authorization: str | None = Header(
         if data[f]: data[f] = json.loads(data[f])
     return data
 
+# ─── Planner scan (handwritten notebook → jobs) ──────────
+@app.post("/api/planner/scan")
+async def planner_scan(file: UploadFile = File(...), authorization: str | None = Header(None)):
+    """OCR a photo of the handwritten planner into editable entries (no DB write).
+    Runs on free local vision (Ollama qwen2.5vl + Claude CLI) — desktop only."""
+    _auth(authorization)
+    if not vision_available():
+        raise HTTPException(503, "Vision runs on the desktop (Ollama). Open the app on the desktop/Tailscale to scan.")
+    content = await file.read()
+    if len(content) > 12 * 1024 * 1024:
+        raise HTTPException(400, "Image too large (max 12MB)")
+    try:
+        entries = scan_planner(base64.b64encode(content).decode())
+    except Exception as e:
+        raise HTTPException(500, f"Scan failed: {e}")
+    return {"entries": entries}
+
+@app.post("/api/planner/import")
+async def planner_import(body: dict, authorization: str | None = Header(None)):
+    """Bulk-create clients/jobs/quotes from reviewed planner entries."""
+    _auth(authorization)
+    db = get_db()
+    created = {"clients": 0, "jobs": 0, "quotes": 0}
+    for e in (body or {}).get("entries", []):
+        name = (e.get("client") or "").strip()
+        client_id = None
+        if name:
+            row = db.execute("SELECT id FROM clients WHERE name = ?", [name]).fetchone()
+            if row:
+                client_id = row[0]
+            else:
+                cur = db.execute("INSERT INTO clients (name, address) VALUES (?, ?)",
+                                 [name, e.get("address")])
+                client_id = cur.lastrowid
+                created["clients"] += 1
+        work = (e.get("work") or "Job").strip()
+        day = e.get("day")
+        desc = work + (f"  [planner: {day}]" if day else "")
+        cur = db.execute(
+            "INSERT INTO jobs (client_id, status, title, description) VALUES (?,?,?,?)",
+            [client_id, "quoted", work[:80], desc])
+        job_id = cur.lastrowid
+        created["jobs"] += 1
+        price = e.get("price")
+        if price:
+            try:
+                price = float(price)
+                db.execute("INSERT INTO quotes (job_id, line_items, total, tax_rate) VALUES (?,?,?,?)",
+                           [job_id, json.dumps([{"description": work, "amount": price}]), price, 0])
+                created["quotes"] += 1
+            except (TypeError, ValueError):
+                pass
+    db.commit()
+    return {"ok": True, "created": created}
+
 # ─── Serve built frontend (single-app: UI + API one origin) ──
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
