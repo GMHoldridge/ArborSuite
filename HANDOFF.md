@@ -54,4 +54,18 @@ Step 1: Scaffold — setting up project configs, frontend, backend foundation
 - Deploy: `vercel deploy --prod --yes` from project dir (GitHub auto-connect lacks perms; CLI upload works).
 - FastAPI lifespan startup DOES run on Vercel.
 
-**TODO for full features on prod:** set Vercel env ANTHROPIC_API_KEY (AI assess) + BLOB_READ_WRITE_TOKEN (photos); Max's Yahoo email+app-password (SMTP) + logo via Settings; strip demo data for real use.
+**TODO for full features on prod:** BLOB_READ_WRITE_TOKEN (photos); Max's Yahoo email+app-password (SMTP) + logo via Settings; strip demo data for real use. (Anthropic API NOT used — see below.)
+
+---
+
+## 2026-06-27 — Planner scan + free local vision (NO paid API)
+**Feature:** photograph handwritten notebook planner → extract jobs → review table → bulk-import clients/jobs/quotes. Verified end-to-end (scan 200 ~40s via tailnet, import created clients+jobs+quotes).
+**Vision is FREE/local (Anthropic API banned until Max pays enough to justify):**
+- _lib/vision.py: composite pattern (like warden/os_agent/vision.py). Planner OCR = qwen2.5vl:7b TRANSCRIBES the page → Claude CLI structures it (falls back to qwen2.5-coder / llama3.2 text models). Tree assessment = llava:7b. All via Ollama on :11435 (ARBOR_OLLAMA_URL).
+- claude_vision.py no longer calls Anthropic SDK — delegates to _lib.vision.
+- NOTE: VLMs flaky at emitting JSON arrays — that's why we transcribe-then-structure, not ask the VLM for JSON directly.
+**Two-instance architecture (both share the same Turso DB):**
+- CLOUD (Vercel, arborsuite.vercel.app): CRM always-on for Max. Vision endpoints return 503 (no Ollama there).
+- DESKTOP (tailnet https://desktop-dm7rpgf.tail973c90.ts.net, runs dev_server.py with TURSO_* + ARBOR_OLLAMA_URL env): same app + WORKING vision. This is where Geoff scans the notebook / runs assessments. Data lands in Turso → Max sees it in cloud.
+- Desktop instance started via: TURSO_DATABASE_URL/TURSO_AUTH_TOKEN/ARBOR_OLLAMA_URL env + `python dev_server.py` (port 8000), proxied by `tailscale serve`.
+**Gotcha:** desktop instance uses dev-default JWT_SECRET, cloud uses its own — fine while OPEN (no PIN); if a PIN is ever set, align JWT_SECRET across both or tokens won't cross-validate.
