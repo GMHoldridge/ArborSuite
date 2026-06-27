@@ -84,3 +84,7 @@ Two scheduled tasks (at logon, no time limit, RestartCount 3) now run the deskto
 - Launchers live in `C:\Users\Ghold\arborsuite-svc\` (OUTSIDE the git repo on purpose — they hold the Turso token; never commit). Logs: app.log / worker.log there.
 - Manage: `Start-ScheduledTask`/`Stop-ScheduledTask -TaskName "ArborSuite App"`. To change env/token, edit the launcher .ps1 + restart the task.
 - NOTE: venv python.exe is a shim → each launch shows 2 python procs (shim+real); expected, not a duplicate instance. Verified: clean restart via tasks → app up + cloud scan processed in ~38s.
+
+## 2026-06-27 — Per-job weather alerts
+Each upcoming job (next 7d, with coords) gets a wind/rain/storm/heat/freeze risk for ITS location + scheduled date. Existing weather.py risk logic (wind≥25=red, thunderstorm=red, rain%/heat/freeze=yellow) was already good — added: sync forecast_for_date (picks the job's day from weather.gov 7-day periods) + refresh_jobs_weather(db) storing weather_status+risk_score. /api/jobs/weather/refresh endpoint; dashboard returns weather_alerts; vision_worker refreshes every 30min; Dashboard "Weather Watch" card + manual ↻. Verified: risk engine flags 30mph/storm red; dashboard surfaces it. Uses job lat/lon → falls back to client coords.
+**Gap/follow-up:** only jobs WITH coordinates get weather. Planner-imported + typed-address jobs have no lat/lon → no weather until geocoded. Next feature: geocode address→lat/lon (free Nominatim/Census) so all jobs get weather + route optimizer coords.
