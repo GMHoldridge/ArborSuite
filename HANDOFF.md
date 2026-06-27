@@ -87,4 +87,7 @@ Two scheduled tasks (at logon, no time limit, RestartCount 3) now run the deskto
 
 ## 2026-06-27 — Per-job weather alerts
 Each upcoming job (next 7d, with coords) gets a wind/rain/storm/heat/freeze risk for ITS location + scheduled date. Existing weather.py risk logic (wind≥25=red, thunderstorm=red, rain%/heat/freeze=yellow) was already good — added: sync forecast_for_date (picks the job's day from weather.gov 7-day periods) + refresh_jobs_weather(db) storing weather_status+risk_score. /api/jobs/weather/refresh endpoint; dashboard returns weather_alerts; vision_worker refreshes every 30min; Dashboard "Weather Watch" card + manual ↻. Verified: risk engine flags 30mph/storm red; dashboard surfaces it. Uses job lat/lon → falls back to client coords.
-**Gap/follow-up:** only jobs WITH coordinates get weather. Planner-imported + typed-address jobs have no lat/lon → no weather until geocoded. Next feature: geocode address→lat/lon (free Nominatim/Census) so all jobs get weather + route optimizer coords.
+**Gap/follow-up:** only jobs WITH coordinates get weather. → SOLVED 2026-06-27 by geocoding (below).
+
+## 2026-06-27 — Address geocoding (closes the weather/route gap)
+_lib/geocode.py: keyless geocode(address) → (lat,lon) via US Census geocoder, Nominatim fallback; best-effort (never raises). Auto-runs on client create/update (_maybe_geocode) + planner import; worker backfill_clients() each 30min cycle (before weather). Verified: Max's Churchville addr, Portland, Empire State Bldg all resolved correctly; client created via API auto-filled coords. Now scan-planner → clients w/ addresses → geocoded → jobs inherit client coords → weather alerts + route optimizer work. (Jobs use job.location_lat/lon, fall back to client coords.)
