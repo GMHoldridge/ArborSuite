@@ -225,6 +225,15 @@ export interface RouteResult {
   total_miles: number
 }
 
+export interface WeatherAlert {
+  id: number
+  title: string
+  date: string | null
+  status: 'yellow' | 'red'
+  risk: string | null
+  client: string | null
+}
+
 export interface DashboardData {
   job_counts: Record<string, number>
   unpaid_invoices: { count: number; total: number }
@@ -232,4 +241,5 @@ export interface DashboardData {
   month_expenses: number
   month_profit: number
   upcoming_jobs: { id: number; title: string; date: string; client: string }[]
+  weather_alerts: WeatherAlert[]
 }

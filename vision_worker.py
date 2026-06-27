@@ -35,7 +35,17 @@ def main():
         print("FATAL: Ollama not reachable at ARBOR_OLLAMA_URL — vision can't run here", flush=True)
         sys.exit(1)
     print(f"vision_worker up — polling every {POLL_SECONDS}s", flush=True)
+    last_weather = 0.0
     while True:
+        # Periodic weather refresh for upcoming jobs (every 30 min)
+        if time.time() - last_weather > 1800:
+            try:
+                from _lib.weather import refresh_jobs_weather
+                alerts = refresh_jobs_weather(get_db())
+                print(f"weather refreshed — {len(alerts)} job(s) at risk", flush=True)
+            except Exception as e:
+                print(f"weather refresh error: {e}", flush=True)
+            last_weather = time.time()
         try:
             db = get_db()
             row = db.execute(

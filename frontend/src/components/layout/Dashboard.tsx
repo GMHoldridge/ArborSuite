@@ -94,6 +94,38 @@ export default function Dashboard() {
         </button>
       </div>
 
+      {/* Weather alerts (job safety) */}
+      <section>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Weather Watch</h2>
+          <button onClick={refreshWeather} disabled={refreshingWx} className="text-xs font-medium text-[#228B22] disabled:opacity-50">
+            {refreshingWx ? 'Checking…' : '↻ Refresh'}
+          </button>
+        </div>
+        {data.weather_alerts.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-3">No weather risks on upcoming jobs</p>
+        ) : (
+          <div className="space-y-2">
+            {data.weather_alerts.map((a) => (
+              <Link key={a.id} to={`/jobs/${a.id}`}
+                className={`block p-3 rounded-xl border active:opacity-80 ${a.status === 'red' ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-gray-900 truncate">
+                    {a.status === 'red' ? '🚫' : '⚠️'} {a.title}
+                  </p>
+                  <span className="text-xs font-medium text-gray-500 whitespace-nowrap">
+                    {a.date ? new Date(a.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : ''}
+                  </span>
+                </div>
+                <p className={`text-xs mt-0.5 ${a.status === 'red' ? 'text-red-700' : 'text-amber-700'}`}>
+                  {a.risk || 'Conditions flagged'}{a.client ? ` · ${a.client}` : ''}
+                </p>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* Job counts by status */}
       <section>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Jobs</h2>
