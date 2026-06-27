@@ -17,17 +17,62 @@ export default function PlannerScan() {
   const [importing, setImporting] = useState(false)
   const [entries, setEntries] = useState<Entry[] | null>(null)
 
+  function loadImage(file: File): Promise<HTMLImageElement> {
+    return new Promise((res, rej) => {
+      const img = new Image()
+      img.onload = () => res(img)
+      img.onerror = rej
+      img.src = URL.createObjectURL(file)
+    })
+  }
+
+  async function compress(file: File): Promise<Blob> {
+    try {
+      const img = await loadImage(file)
+      const max = 1100
+      const scale = Math.min(1, max / Math.max(img.width, img.height))
+      const w = Math.round(img.width * scale), h = Math.round(img.height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w; canvas.height = h
+      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+      return await new Promise((res) => canvas.toBlob((b) => res(b || file), 'image/jpeg', 0.7))
+    } catch {
+      return file
+    }
+  }
+
+  async function pollJob(jobId: number) {
+    for (let i = 0; i < 60; i++) {
+      await new Promise((r) => setTimeout(r, 3000))
+      const j = await api.get<{ status: string; result?: Entry[]; error?: string }>(`/vision-jobs/${jobId}`)
+      if (j.status === 'done') {
+        setEntries(j.result || [])
+        if (!j.result?.length) toast.error("Couldn't read any jobs — try a clearer photo")
+        return
+      }
+      if (j.status === 'error') throw new Error(j.error || 'Scan failed')
+    }
+    throw new Error('Timed out waiting for the scan')
+  }
+
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     setScanning(true)
     setEntries(null)
     try {
+      const blob = await compress(file)
       const fd = new FormData()
-      fd.append('file', file)
-      const res = await api.post<{ entries: Entry[] }>('/planner/scan', fd)
-      setEntries(res.entries)
-      if (!res.entries.length) toast.error("Couldn't read any jobs — try a clearer photo")
+      fd.append('file', new File([blob], 'page.jpg', { type: 'image/jpeg' }))
+      const res = await api.post<{ entries?: Entry[]; done?: boolean; pending?: boolean; job_id?: number }>(
+        '/planner/scan', fd,
+      )
+      if (res.done) {
+        setEntries(res.entries || [])
+        if (!res.entries?.length) toast.error("Couldn't read any jobs — try a clearer photo")
+      } else if (res.pending && res.job_id) {
+        await pollJob(res.job_id)
+      }
     } catch (err: unknown) {
       toast.error(errorMessage(err, 'Scan failed'))
     } finally {
