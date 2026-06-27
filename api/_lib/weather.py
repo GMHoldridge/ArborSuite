@@ -78,3 +78,74 @@ def _parse_wind(wind_str: str) -> int:
     import re
     numbers = re.findall(r"\d+", wind_str)
     return max(int(n) for n in numbers) if numbers else 0
+
+
+# ── Sync path (used by the worker + refresh endpoint) ────────────────
+import json as _json
+import urllib.request as _urlreq
+
+
+def _fetch_periods(lat: float, lon: float) -> list:
+    """Sync fetch of weather.gov forecast periods (no async, no key)."""
+    def _get(url):
+        req = _urlreq.Request(url, headers=HEADERS)
+        with _urlreq.urlopen(req, timeout=12) as r:
+            return _json.loads(r.read())
+    pts = _get(f"{WEATHER_GOV_BASE}/points/{lat:.4f},{lon:.4f}")
+    fc = _get(pts["properties"]["forecast"])
+    return fc["properties"].get("periods", [])
+
+
+def forecast_for_date(lat: float, lon: float, date_str: str | None = None) -> dict:
+    """Analyze conditions for a specific job date (YYYY-MM-DD). Picks that day's
+    daytime period; falls back to the soonest period. Returns same shape as
+    _analyze_conditions, plus 'beyond_forecast' if the date is out of range."""
+    periods = _fetch_periods(lat, lon)
+    if not periods:
+        return {"status": "unknown", "risks": [], "forecast": "No data"}
+    chosen = None
+    if date_str:
+        for p in periods:
+            if p.get("isDaytime") and str(p.get("startTime", "")).startswith(date_str):
+                chosen = p
+                break
+        if chosen is None:
+            # date not in the 7-day window
+            return {"status": "unknown", "risks": [], "forecast": "Beyond 7-day forecast", "beyond_forecast": True}
+    if chosen is None:
+        chosen = periods[0]
+    return _analyze_conditions(chosen)
+
+
+def refresh_jobs_weather(db) -> list:
+    """For every upcoming job (next 7 days) with a location, fetch its day's
+    forecast and store weather_status + risk_score. Returns yellow/red alerts.
+    Uses the job's own lat/lon, falling back to the client's."""
+    rows = db.execute(
+        """SELECT j.id, j.title, j.scheduled_date, j.location_lat, j.location_lon, c.lat, c.lon
+           FROM jobs j LEFT JOIN clients c ON j.client_id = c.id
+           WHERE j.status IN ('quoted','scheduled','in_progress')
+             AND j.scheduled_date IS NOT NULL
+             AND j.scheduled_date BETWEEN date('now') AND date('now','+7 days')"""
+    ).fetchall()
+    alerts = []
+    for r in rows:
+        jid, title, sdate, jlat, jlon, clat, clon = r
+        lat = jlat if jlat is not None else clat
+        lon = jlon if jlon is not None else clon
+        if lat is None or lon is None:
+            continue
+        try:
+            w = forecast_for_date(float(lat), float(lon), sdate)
+        except Exception:
+            continue
+        status = w.get("status", "unknown")
+        risk = "; ".join(w.get("risks", [])) or w.get("forecast", "")
+        db.execute(
+            "UPDATE jobs SET weather_status=?, risk_score=?, updated_at=datetime('now') WHERE id=?",
+            [status, risk[:200], jid],
+        )
+        if status in ("yellow", "red"):
+            alerts.append({"job_id": jid, "title": title, "date": sdate, "status": status, "risk": risk})
+    db.commit()
+    return alerts
