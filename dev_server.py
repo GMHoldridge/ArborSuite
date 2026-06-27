@@ -818,6 +818,18 @@ async def weather_check(lat: float, lon: float, authorization: str | None = Head
     except Exception as e:
         raise HTTPException(502, f"Weather API error: {str(e)}")
 
+@app.post("/api/jobs/weather/refresh")
+def refresh_weather(authorization: str | None = Header(None)):
+    """Re-check the forecast for every upcoming job's location+date, store the
+    per-job risk, and return the yellow/red alerts. Sync (runs in threadpool)."""
+    _auth(authorization)
+    from _lib.weather import refresh_jobs_weather
+    try:
+        alerts = refresh_jobs_weather(get_db())
+    except Exception as e:
+        raise HTTPException(502, f"Weather refresh failed: {e}")
+    return {"alerts": alerts, "count": len(alerts)}
+
 # ─── Assess ──────────────────────────────────────────
 @app.post("/api/assess")
 async def assess(photo_url: str = "", job_id: int | None = None, client_notes: str = "", authorization: str | None = Header(None)):
