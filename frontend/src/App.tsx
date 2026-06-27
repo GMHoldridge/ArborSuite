@@ -21,6 +21,7 @@ import ChemicalLog from './components/chemicals/ChemicalLog'
 import RouteOptimizer from './components/route/RouteOptimizer'
 import QuoteView from './components/quote/QuoteView'
 import SettingsPage from './components/settings/SettingsPage'
+import PlannerScan from './components/planner/PlannerScan'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<'ok' | 'login' | 'checking'>(
