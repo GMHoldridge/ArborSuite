@@ -1,58 +1,62 @@
-const CACHE_NAME = 'arborsuite-v1'
-const STATIC_ASSETS = [
-  '/',
-  '/manifest.json',
-]
+// ArborSuite service worker.
+// v2: the app shell (HTML) is NETWORK-FIRST so a new deploy always loads.
+// The old v1 was cache-first on '/', which served a stale index.html pointing
+// at a deleted JS bundle -> blank screen that wouldn't load. Only immutable
+// hashed /assets/* files are cached.
+const CACHE = 'arborsuite-v2'
 
-// Install: cache app shell
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
-  )
+self.addEventListener('install', () => {
   self.skipWaiting()
 })
 
-// Activate: clean old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   )
-  self.clients.claim()
 })
 
-// Fetch: network-first for API, cache-first for static assets
 self.addEventListener('fetch', (event) => {
   const { request } = event
+  if (request.method !== 'GET') return
   const url = new URL(request.url)
 
-  // Skip non-GET requests
-  if (request.method !== 'GET') return
+  // API: never cached — let it hit the network (SW stays out of the way).
+  if (url.pathname.startsWith('/api/')) return
 
-  // API requests: network first, no cache
-  if (url.pathname.startsWith('/api/')) {
+  // App shell / navigations: NETWORK-FIRST. Always try the live page; only fall
+  // back to a cached copy when actually offline.
+  if (request.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('.html')) {
     event.respondWith(
-      fetch(request).catch(() => new Response(
-        JSON.stringify({ error: 'offline' }),
-        { headers: { 'Content-Type': 'application/json' } }
-      ))
+      fetch(request)
+        .then((resp) => {
+          const clone = resp.clone()
+          caches.open(CACHE).then((c) => c.put(request, clone))
+          return resp
+        })
+        .catch(() => caches.match(request).then((c) => c || caches.match('/')))
     )
     return
   }
 
-  // Static assets: cache first, then network
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      const fetchPromise = fetch(request).then((response) => {
-        if (response.ok) {
-          const clone = response.clone()
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
-        }
-        return response
-      }).catch(() => cached)
+  // Immutable hashed build assets: cache-first is safe (filenames change per build).
+  if (url.pathname.startsWith('/assets/')) {
+    event.respondWith(
+      caches.match(request).then((cached) =>
+        cached ||
+        fetch(request).then((resp) => {
+          if (resp.ok) {
+            const clone = resp.clone()
+            caches.open(CACHE).then((c) => c.put(request, clone))
+          }
+          return resp
+        })
+      )
+    )
+    return
+  }
 
-      return cached || fetchPromise
-    })
-  )
+  // Everything else: network, fall back to cache if offline.
+  event.respondWith(fetch(request).catch(() => caches.match(request)))
 })
