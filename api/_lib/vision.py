@@ -122,11 +122,49 @@ _TREE_PROMPT = (
 )
 
 
+def identify_species(image_b64: str):
+    """Accurate tree species via Pl@ntNet (free, purpose-built for plant ID).
+    Needs PLANTNET_API_KEY (free at my.plantnet.org). Returns None if no key or
+    on any failure — caller keeps the VLM's rough guess."""
+    key = os.environ.get("PLANTNET_API_KEY")
+    if not key:
+        return None
+    try:
+        import httpx
+        img = base64.b64decode(image_b64)
+        r = httpx.post(
+            f"https://my-api.plantnet.org/v2/identify/all?api-key={key}",
+            files={"images": ("tree.jpg", img, "image/jpeg")},
+            data={"organs": "auto"},
+            timeout=30,
+        )
+        if r.status_code != 200:
+            return None
+        results = r.json().get("results", [])
+        if not results:
+            return None
+        top = results[0]
+        sp = top.get("species", {})
+        commons = sp.get("commonNames") or []
+        name = commons[0] if commons else sp.get("scientificNameWithoutAuthor")
+        return {"name": name, "scientific": sp.get("scientificNameWithoutAuthor"),
+                "confidence": round(float(top.get("score", 0)), 3)}
+    except Exception:
+        return None
+
+
 def assess_tree(image_b64: str) -> dict:
     raw = _ollama_vision(TREE_MODEL, _TREE_PROMPT, image_b64, as_json=True)
     data = _loads(raw)
     if not isinstance(data, dict):
         raise RuntimeError("Tree assessment did not return valid JSON")
+    # Override the VLM's weak species guess with Pl@ntNet when a key is present.
+    sp = identify_species(image_b64)
+    if sp and sp.get("name"):
+        data["species"] = sp["name"]
+        data["species_confidence"] = sp["confidence"]
+        if sp.get("scientific"):
+            data["species_scientific"] = sp["scientific"]
     return data
 
 
