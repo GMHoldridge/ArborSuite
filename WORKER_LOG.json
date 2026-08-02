@@ -1,0 +1,27 @@
+[
+  {
+    "session_id": "dart_research_inbox-280-r1",
+    "timestamp": "2026-08-02T12:01:55.591573+00:00",
+    "project": "ArborSuite",
+    "branch": "master",
+    "completed": [
+      "inbox-280 (customer #2 experiment) r1 ANALYZE recorded+verified via dart_writer (exit OK, 1 review, status unchanged; session id persisted in inbox.json)"
+    ],
+    "blocked": [],
+    "modified_files": [],
+    "decisions": [
+      {
+        "what": "ANALYZE not done/drop",
+        "why": "item is 1 day old, core is a Geoff business action (find paying customer #2), no code shipped or superseded it \u2014 but the PWA contingency it budgets ~1 day for is ALREADY DEPLOYED (manifest.json + sw.js offline fallback, commit 32511ad)",
+        "date": "2026-08-02",
+        "decided_by": "dart_research_inbox-280-r1"
+      }
+    ],
+    "warnings": [
+      "Read-only session \u2014 no code touched, no HANDOFF edit"
+    ],
+    "next_steps": [
+      "Only worker-eligible prep: strip demo data (open HANDOFF TODO) + write a clone-deploy checklist (new Vercel project + new Turso DB + Settings rebrand); vision for a 2nd tenant needs 2nd vision_worker, multi-DB worker, or Anthropic-API path B"
+    ]
+  }
+]
