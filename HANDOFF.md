@@ -4,7 +4,6 @@
 **Status:** Active | **Branch:** `main` | **Health:** G
 
 ## Warnings
-- Read-only session — no code touched, no HANDOFF edit
 - inbox-280 carries promoted_to='dismissed' — known stale dart_writer field (same bug flagged by inbox-251 r5), NOT a real dismissal; item status is 'new'
 
 ## Recently Completed
