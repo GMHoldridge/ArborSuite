@@ -9,7 +9,6 @@
 
 ## Recently Completed
 - inbox-280 r3 ANALYZE recorded+verified via dart_writer (persisted inbox.json:7622) — zero movement since r2 08-09: no ArborSuite commits past e5d2071 (08-02), PWA still live (manifest.json+sw.js, 32511ad), demo seed still unbuilt (dev_server.py:27), no clone-deploy checklist anywhere (2026-08-17)
-- inbox-280 r3 ANALYZE recorded+verified via dart_writer (persisted inbox.json:7622) — zero movement since r2 08-09: no commits past e5d2071, demo seed still at dev_server.py:27, no clone-deploy checklist. Tripwire set: no r4 read-only review; next dispatch = EXECUTE on demo-data strip + clone checklist, or wait on Geoff customer-#2 contact. Item's promoted_to='dismissed' is the known stale dart_writer field, NOT a real dismissal (2026-08-16)
 - inbox-280 (customer #2 experiment) r1 ANALYZE recorded+verified via dart_writer (exit OK, 1 review, status unchanged; session id persisted in inbox.json) (2026-08-02)
 
 ## Blocked
