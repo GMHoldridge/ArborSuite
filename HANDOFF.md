@@ -27,3 +27,6 @@ None
 
 ## Recent Sessions
 - `dart_research_inbox-280-r1` (2026-08-02) — 1 tasks
+
+## Recent Work (appended)
+- **2026-08-23 — inbox-280 r4 ANALYZE recorded+verified** (persisted inbox.json:8052, dart_writer exit OK). Zero movement since r3 08-16: only commits after e5d2071 are 458e0a7/b20d188 (state files only — HANDOFF/STATE/WORKER_LOG), PWA still live (frontend/public/manifest.json + sw.js, 32511ad), demo seed still unbuilt (dev_server.py:27,42), no clone-deploy checklist. Verdict unchanged: core = Geoff-only business action (land paying customer #2); not done/superseded/obsolete. **This r4 dispatch itself violated the r3 tripwire** — 4 read-only reviews now with identical conclusions. Dispatcher: NO r5 read-only. Only valid next dispatches: EXECUTE (demo-data strip + clone-deploy checklist) or wait on Geoff contacting a customer #2 candidate. promoted_to='dismissed' echo = known stale dart_writer field bug, item status is 'new'.
