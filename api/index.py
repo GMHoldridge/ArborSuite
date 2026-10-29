@@ -17,6 +17,6 @@ from dev_server import app, _seed_settings  # noqa: E402  (ASGI app Vercel serve
 try:
     from _lib.db import run_migrations
     run_migrations()
-    _seed_settings()  # business profile (Kustom Tree Care Inc.) on first run
+    _seed_settings()  # blank business profile row on first run
 except Exception:
     pass

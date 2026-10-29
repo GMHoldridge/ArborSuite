@@ -4,11 +4,11 @@ import { toast, errorMessage } from '../../stores/toast'
 import type { Settings } from '../../types/index'
 
 const FIELDS: { key: keyof Settings; label: string; placeholder: string; type?: string }[] = [
-  { key: 'business_name', label: 'Business name', placeholder: 'Kustom Tree Care Inc.' },
-  { key: 'owner_name', label: 'Owner name', placeholder: 'Max Yantachka' },
-  { key: 'email', label: 'Email (estimates send from here)', placeholder: 'you@yahoo.com', type: 'email' },
-  { key: 'phone', label: 'Phone', placeholder: '(585) 991-9289', type: 'tel' },
-  { key: 'address', label: 'Address', placeholder: '6291 Buffalo Rd, Churchville, NY 14428' },
+  { key: 'business_name', label: 'Business name', placeholder: 'Your Tree Service' },
+  { key: 'owner_name', label: 'Owner name', placeholder: 'Owner name' },
+  { key: 'email', label: 'Email (estimates send from here)', placeholder: 'you@example.com', type: 'email' },
+  { key: 'phone', label: 'Phone', placeholder: '(555) 555-0100', type: 'tel' },
+  { key: 'address', label: 'Address', placeholder: '123 Main St, Town, ST 00000' },
   { key: 'license_number', label: 'License / cert # (optional)', placeholder: 'ISA / state license' },
   { key: 'logo_url', label: 'Logo image URL (optional)', placeholder: 'https://…/logo.png' },
 ]

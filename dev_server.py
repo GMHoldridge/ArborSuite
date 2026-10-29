@@ -27,16 +27,12 @@ def startup():
     _seed_demo_data()
 
 def _seed_settings():
-    """Pre-brand for Kustom Tree Care Inc. on first run. Owner can edit any of
-    this in the Settings screen (e.g. add his email + logo)."""
+    """Create a blank business profile on first run. The owner fills it in on the
+    Settings screen; until then estimates use generic wording."""
     db = get_db()
     if db.execute("SELECT COUNT(*) FROM settings").fetchone()[0] > 0:
         return
-    db.execute(
-        """INSERT INTO settings (id, business_name, owner_name, phone, address, accent_color)
-           VALUES (1, ?, ?, ?, ?, ?)""",
-        ["Kustom Tree Care Inc.", "Max Yantachka", "(585) 991-9289",
-         "6291 Buffalo Rd, Churchville, NY 14428", "#228B22"])
+    db.execute("INSERT INTO settings (id, accent_color) VALUES (1, ?)", ["#228B22"])
     db.commit()
 
 def _seed_demo_data():
