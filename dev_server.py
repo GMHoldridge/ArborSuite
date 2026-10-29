@@ -138,7 +138,10 @@ def _quote_dict(row):
     return d
 
 def _public_base_url():
-    base = os.environ.get("PUBLIC_BASE_URL") or os.environ.get("VERCEL_URL")
+    # VERCEL_URL is the per-deployment host, which sits behind Vercel's login wall;
+    # client links must use the public production domain.
+    base = (os.environ.get("PUBLIC_BASE_URL") or os.environ.get("VERCEL_PROJECT_PRODUCTION_URL")
+            or os.environ.get("VERCEL_URL"))
     if base:
         return base if base.startswith("http") else f"https://{base}"
     return "http://localhost:5173"
