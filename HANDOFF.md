@@ -42,3 +42,18 @@ None
     - dev_server.py is 1079 lines (over the cap): run split_plan before editing it.
   - **Ordering:** inbox-544 (VERCEL_URL estimate links open a Vercel login page; WRITTEN, not deployed; Geoff needs to run `vercel login`) must ship first. Otherwise homeowners can't reach QuoteView from the email, and there's no point restyling it.
   - **Next touch:** build the preview artifact. It touches no app code. Do not run an r2 read-only review.
+- **2026-11-04 — inbox-561 ("zero-entry" capture: walk-around estimate, photo auto-attach, geofence, BLE equipment, spoken chem log, receipts) r1 ANALYZE recorded and verified** (persisted at line 21519 of the DART inbox; dart_writer exit 0). Real and NOT STARTED: captured 09:16, and no code since.
+  - **Reusable base:** the vision_jobs queue plus the desktop worker (it only knows the planner and tree kinds, vision_worker.py:23-28). Also the photo → draft-quote → send flow (AssessmentView.tsx:192-228), geocoded clients, jobs.status, the equipment-hours schema, the chemical_applications table, and the receipt camera input.
+  - **Missing:** there's no audio/voice code, no geolocation or EXIF, no photo storage, and no rate card. Line items are free-form, so "at the shop's prices" has no data behind it yet.
+  - **Bugs found (by code read, not run):**
+    - (a) ExpenseCapture posts FormData to a JSON-body endpoint (ExpenseCapture.tsx:55-64 vs dev_server.py:559-560). That's likely a 422, and the receipt is never stored.
+    - (b) The service-due logic is broken (dev_server.py:677 modulo window). Logging a service never resets the hour baseline (:732-733).
+  - **Platform walls:** a PWA can't do background geofencing or passive BLE (Web Bluetooth isn't on iOS). Passive (3) and (4) need a native wrapper or a gateway in each truck, which goes against the "PWA, not Play Store" decision.
+  - **Pitch liability:** the "Crew & Time" menu (AppShell.tsx:47) tracks hours per person, and the item says Frank's office won't accept that. Hide it before any Frank demo.
+  - **Order:** 544 deploy → 560 preview → rate card + bug fixes (a)/(b) → walk-around v1 → chem sentence → receipt OCR → photo storage + auto-attach → native-wrapper decision.
+  - **Ask Geoff:**
+    - Is the Frank pitch on?
+    - Does Frank have a price sheet?
+    - Is a native wrapper OK?
+    - What phones does the crew use: iPhone or Android?
+  - **Next:** no r2 read-only review unless a 561 commit lands or Geoff answers.
