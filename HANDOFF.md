@@ -64,3 +64,10 @@ None
   - **New fact:** the business is Montalbano Tree Service (Geoff, 11-04). ArborSuite has not been pitched to Frank, so keep the name a Settings value, not code.
   - **Still true:** inbox-544 deploys first (needs Geoff's `vercel login`).
   - **Next:** Geoff picks Growth Ring, Canopy or Survey; then the port is EXECUTE work (tokens + `--brand`, the 183 replacements, 9 icons, art on login/headers/empty states/quote header). No r3 read-only review unless he picks or a theme/icon commit lands.
+- **2026-11-11 — inbox-561 ("zero-entry" capture) r2 ANALYZE recorded and verified** (dart_writer exit 0, 3 reviews, status still 'new'; session c38f70d3). **No change since r1 (11-04):** still real, NOT STARTED, not superseded. r1's analysis, build order and questions stand.
+  - **Commits:** `git log --all --since=2026-11-03` shows 3 commits (0df89c5, d7196e7, 0a7382e), all HANDOFF.md only. The last commit touching frontend/, api/, dev_server.py or vision_worker.py is 1095957 (10-29). No worker/* branch has moved.
+  - **Code:** a source grep for geolocation, MediaRecorder, SpeechRecognition, bluetooth, exif, rate_card, geofence and walk-around finds no feature code. The only matches are the planner-OCR strings in `api/_lib/vision.py:171-214`, which predate the item.
+  - **DART:** no item captured after 561 is tagged ArborSuite or mentions zero-entry, rate card or price sheet.
+  - **Geoff's answers:** none found in the DART inbox or the ArborSuite memory note. Session transcripts were not searched.
+  - **This r2 broke r1's tripwire** (no r2 unless a 561 commit lands or Geoff answers). No r3 read-only review until one of those happens.
+  - **Doable without Geoff (EXECUTE work):** the two base bugs r1 found, the ExpenseCapture FormData/JSON mismatch (ExpenseCapture.tsx:55-64 vs dev_server.py:559-560) and the service-due logic (dev_server.py:677, :732-733).
