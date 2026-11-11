@@ -57,3 +57,10 @@ None
     - Is a native wrapper OK?
     - What phones does the crew use: iPhone or Android?
   - **Next:** no r2 read-only review unless a 561 commit lands or Geoff answers.
+- **2026-11-11 — inbox-560 r2 ANALYZE recorded and verified** (dart_writer exit 0, 3 reviews, status still 'new'). r1 above is stale on one point: **the preview step SHIPPED.**
+  - **Shipped:** the "ArborSuite Looks" canvas, claude.ai/artifact/1U95Qqt8kHmTayxuDVoKZw, built 11-04 by interactive session 42f4c802 about 90 minutes after r1 ran. It has the client estimate page in three looks (Growth Ring, Canopy, Survey), plus Login, Home and the More menu with stroke icons in Growth Ring.
+  - **Not shipped:** Geoff has not picked a look in any session. The builder session could not view the canvas itself, so its rendering is unconfirmed.
+  - **App code:** none. Only HANDOFF commits since capture (0df89c5, d7196e7). #228B22 is still 183 hits in 24 files, index.css:4-7 vars are still dead, and the emojis are still at `frontend/src/components/layout/AppShell.tsx:46-53` (r1 gave that path without `layout/`).
+  - **New fact:** the business is Montalbano Tree Service (Geoff, 11-04). ArborSuite has not been pitched to Frank, so keep the name a Settings value, not code.
+  - **Still true:** inbox-544 deploys first (needs Geoff's `vercel login`).
+  - **Next:** Geoff picks Growth Ring, Canopy or Survey; then the port is EXECUTE work (tokens + `--brand`, the 183 replacements, 9 icons, art on login/headers/empty states/quote header). No r3 read-only review unless he picks or a theme/icon commit lands.
